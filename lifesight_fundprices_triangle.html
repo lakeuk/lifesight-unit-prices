@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LifeSight Fund Return Matrix</title>
+  
+  <!-- PapaParse for parsing CSV data locally -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #cbd5e1;
+      --primary-dark: #0f172a;
+      --accent-blue: #2563eb;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --tile-inactive-bg: #f1f5f9;
+      --tile-inactive-text: #334155;
+      --input-bg: #ffffff;
+      --grid-header-bg: #e2e8f0;
+    }
+
+    body.dark-mode {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --border-color: #334155;
+      --primary-dark: #f8fafc;
+      --accent-blue: #3b82f6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --tile-inactive-bg: #334155;
+      --tile-inactive-text: #cbd5e1;
+      --input-bg: #0f172a;
+      --grid-header-bg: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 12px; display: flex; flex-direction: column; gap: 12px; min-height: 100vh; transition: background-color 0.2s, color 0.2s; }
+
+    /* Dashboard Card Wrapper */
+    .dashboard-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+
+    /* Top Action Bar */
+    .top-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+    .toolbar-left { display: flex; align-items: center; gap: 10px; flex-grow: 1; }
+    
+    .file-dropzone { border: 2px dashed var(--border-color); border-radius: 6px; padding: 6px 12px; text-align: center; background: var(--input-bg); cursor: pointer; flex-grow: 1; transition: border-color 0.2s; font-size: 0.82rem; }
+    .file-dropzone:hover { border-color: var(--accent-blue); }
+    .file-dropzone input { display: none; }
+    .file-dropzone label { cursor: pointer; font-weight: 600; color: var(--accent-blue); }
+
+    .btn { padding: 6px 10px; font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); border-radius: 5px; cursor: pointer; transition: background 0.15s; }
+    .btn:hover { opacity: 0.85; }
+
+    /* Master Lock Controls Bar */
+    .master-lock-bar { display: flex; align-items: center; justify-content: space-between; background: var(--tile-inactive-bg); padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; }
+    .master-lock-label { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; color: var(--accent-blue); cursor: pointer; user-select: none; }
+
+    /* Matrix Container & Table */
+    .matrix-scroll-wrapper { width: 100%; overflow: auto; max-height: 520px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); }
+    .matrix-table { border-collapse: separate; border-spacing: 0; font-size: 0.72rem; text-align: right; width: 100%; }
+    .matrix-table th, .matrix-table td { padding: 4px 6px; border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); white-space: nowrap; font-weight: 500; }
+    
+    .matrix-table th { background: var(--grid-header-bg); color: var(--text-main); position: sticky; top: 0; z-index: 2; font-weight: 700; text-align: center; }
+    .matrix-table th.first-col-header { position: sticky; left: 0; z-index: 4; text-align: left; background: var(--grid-header-bg); }
+    .matrix-table td.row-header { position: sticky; left: 0; z-index: 3; background: var(--grid-header-bg); font-weight: 700; text-align: left; color: var(--text-main); }
+
+    /* Controls & Sliders Layout */
+    .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; }
+    .axis-control-card { display: flex; flex-direction: column; gap: 8px; }
+    .axis-title { font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
+
+    .date-inputs { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; }
+    .date-inputs input[type="month"] { padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 0.82rem; color: var(--text-main); background: var(--card-bg); }
+
+    .lock-toggle-group { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: 600; color: var(--text-main); cursor: pointer; user-select: none; }
+
+    /* Custom Dual Range Slider */
+    .slider-container { position: relative; height: 26px; display: flex; align-items: center; width: 100%; margin-top: 4px; }
+    .slider-track-bg { position: absolute; width: 100%; height: 5px; background-color: var(--border-color); border-radius: 3px; }
+    .slider-track-fill { position: absolute; height: 5px; background-color: var(--accent-blue); border-radius: 3px; }
+    .range-input { 
+      position: absolute; top: 0; left: 0; height: 100%; width: 100%; 
+      background: transparent; pointer-events: none; -webkit-appearance: none; -moz-appearance: none; appearance: none; 
+      margin: 0; border: none; outline: none;
+    }
+    .range-input::-webkit-slider-runnable-track { background: transparent; border: none; }
+    .range-input::-moz-range-track { background: transparent; border: none; }
+    .range-input::-webkit-slider-thumb { 
+      height: 16px; width: 16px; border-radius: 50%; background: #ffffff; border: 2px solid var(--accent-blue); cursor: pointer; pointer-events: auto; -webkit-appearance: none; box-shadow: 0 1px 3px rgba(0,0,0,0.3); 
+    }
+    .range-input::-moz-range-thumb { 
+      height: 16px; width: 16px; border-radius: 50%; background: #ffffff; border: 2px solid var(--accent-blue); cursor: pointer; pointer-events: auto; -moz-appearance: none; box-shadow: 0 1px 3px rgba(0,0,0,0.3); box-sizing: border-box;
+    }
+
+    /* Single Selection Radio Fund Selector */
+    .fund-selector-section { display: flex; flex-direction: column; gap: 8px; background: var(--input-bg); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); }
+    .fund-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; max-height: 140px; overflow-y: auto; }
+    .fund-radio-tile { 
+      padding: 6px 10px; background-color: var(--tile-inactive-bg); color: var(--tile-inactive-text); border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.78rem; font-weight: 600; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    }
+    .fund-radio-tile:hover { filter: brightness(0.95); }
+    .fund-radio-tile.selected { background-color: var(--card-bg); color: var(--text-main); border-color: var(--accent-blue); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-card">
+    <!-- Top Bar Controls -->
+    <div class="top-toolbar">
+      <div class="toolbar-left">
+        <button id="darkModeToggle" class="btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+        <div class="file-dropzone" id="dropzone">
+          <span id="fileStatus">📁 Drag & drop <strong>lifesight_fundprices_triangle.csv</strong> or </span>
+          <label for="csvFileInput">Browse File</label>
+          <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
+        </div>
+      </div>
+      <div>
+        <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Selected Fund: </span>
+        <strong id="activeFundDisplay" style="font-size: 0.85rem; color: var(--accent-blue);">None</strong>
+      </div>
+    </div>
+
+    <!-- Synchronized / Master Lock Option Bar -->
+    <div class="master-lock-bar">
+      <label class="master-lock-label">
+        <input type="checkbox" id="syncLockToggle" onchange="onSyncLockToggleChange()">
+        <span>🔗 Synchronize both axes (Lock & Move Horizontal & Vertical together)</span>
+      </label>
+      <span style="font-size: 0.75rem; color: var(--text-muted);">Moving either slider shifts both date windows simultaneously</span>
+    </div>
+
+    <!-- Dynamic Return Matrix Table -->
+    <div class="matrix-scroll-wrapper">
+      <table class="matrix-table" id="matrixTable">
+        <thead>
+          <tr id="matrixHeaderRow">
+            <th class="first-col-header">Date</th>
+          </tr>
+        </thead>
+        <tbody id="matrixBody">
+          <tr><td style="text-align: center; padding: 20px;" colspan="100">Loading dataset...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Dual Axis Date Range Controls -->
+    <div class="controls-grid">
+      <!-- Axis X: Purchase Date Range -->
+      <div class="axis-control-card">
+        <div class="axis-title">
+          <span>Purchase Date Range (Horizontal Axis)</span>
+          <label class="lock-toggle-group">
+            <input type="checkbox" id="xLockToggle" checked onchange="onAxisLockChange('x')"> 🔒 Lock Horizontal Span
+          </label>
+        </div>
+        <div class="date-inputs">
+          <input type="month" id="xStartMonth" onchange="onManualMonthChange('x')">
+          <span>to</span>
+          <input type="month" id="xEndMonth" onchange="onManualMonthChange('x')">
+        </div>
+        <div class="slider-container">
+          <div class="slider-track-bg"></div>
+          <div id="xSliderTrackFill" class="slider-track-fill"></div>
+          <input type="range" id="xSliderMin" class="range-input" oninput="onSliderInput('x', 'min')">
+          <input type="range" id="xSliderMax" class="range-input" oninput="onSliderInput('x', 'max')">
+        </div>
+      </div>
+
+      <!-- Axis Y: Sell/Evaluation Date Range -->
+      <div class="axis-control-card">
+        <div class="axis-title">
+          <span>Evaluation Date Range (Vertical Axis)</span>
+          <label class="lock-toggle-group">
+            <input type="checkbox" id="yLockToggle" checked onchange="onAxisLockChange('y')"> 🔒 Lock Vertical Span
+          </label>
+        </div>
+        <div class="date-inputs">
+          <input type="month" id="yStartMonth" onchange="onManualMonthChange('y')">
+          <span>to</span>
+          <input type="month" id="yEndMonth" onchange="onManualMonthChange('y')">
+        </div>
+        <div class="slider-container">
+          <div class="slider-track-bg"></div>
+          <div id="ySliderTrackFill" class="slider-track-fill"></div>
+          <input type="range" id="ySliderMin" class="range-input" oninput="onSliderInput('y', 'min')">
+          <input type="range" id="ySliderMax" class="range-input" oninput="onSliderInput('y', 'max')">
+        </div>
+      </div>
+    </div>
+
+    <!-- Strict Single Selection Fund Picker -->
+    <div class="fund-selector-section">
+      <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Select Fund (Single Choice):</span>
+      <div id="fundGrid" class="fund-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    let fundMap = {};       
+    let allDates = [];      
+    let selectedFund = null;
+    let isDarkMode = false;
+
+    // Axis Range Indices
+    let xMinIdx = 0, xMaxIdx = 0;
+    let yMinIdx = 0, yMaxIdx = 0;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      fetch('lifesight_fundprices_triangle.csv')
+        .then(res => { if (!res.ok) throw new Error(); return res.text(); })
+        .then(csvText => parseAndInitData(csvText))
+        .catch(() => {
+          document.getElementById('fileStatus').innerHTML = "📁 Drag & drop <strong>lifesight_fundprices_triangle.csv</strong> or ";
+        });
+    });
+
+    function toggleDarkMode() {
+      isDarkMode = !isDarkMode;
+      document.body.classList.toggle('dark-mode', isDarkMode);
+      document.getElementById('darkModeToggle').innerText = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+    }
+
+    const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = '#2563eb'; });
+    dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = 'var(--border-color)'; });
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = 'var(--border-color)';
+      if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+    });
+
+    function handleFileSelect(event) {
+      if (event.target.files.length > 0) processFile(event.target.files[0]);
+    }
+
+    function processFile(file) {
+      document.getElementById('fileStatus').innerHTML = `Loaded: <strong>${file.name}</strong>`;
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: h => h ? h.replace(/^\ufeff/, '').trim() : '',
+        complete: res => parseAndInitDataFromRows(res.data)
+      });
+    }
+
+    function parseAndInitData(csvText) {
+      Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: h => h ? h.replace(/^\ufeff/, '').trim() : '',
+        complete: res => parseAndInitDataFromRows(res.data)
+      });
+    }
+
+	function parseDateStr(str) {
+	  if (!str) return null;
+	  const cleanStr = str.replace(/^\ufeff/, '').trim();
+		  const parts = cleanStr.split(/[-/.]/);
+		  
+		  if (parts.length === 3) {
+			const p0 = parseInt(parts[0], 10), p1 = parseInt(parts[1], 10), p2 = parseInt(parts[2], 10);
+			if (!isNaN(p0) && !isNaN(p1) && !isNaN(p2)) {
+			  // Set day parameter strictly to 1 (first of the month)
+			  if (parts[0].length === 4) return new Date(p0, p1 - 1, 1);
+			  if (parts[2].length === 4) return new Date(p2, p1 - 1, 1);
+			}
+		  }
+		  
+		  const fallback = new Date(cleanStr);
+		  // Normalize fallback dates to the 1st of the month as well
+		  return isNaN(fallback.getTime()) ? null : new Date(fallback.getFullYear(), fallback.getMonth(), 1);
+		}
+
+	function parseAndInitDataFromRows(rows) {
+	  fundMap = {};
+	  const dateSet = new Map();
+
+	  rows.forEach(row => {
+		const fundKey = Object.keys(row).find(k => k.toLowerCase() === 'fund');
+		const dateKey = Object.keys(row).find(k => k.toLowerCase() === 'date');
+		const priceKey = Object.keys(row).find(k => k.toLowerCase() === 'unitprice');
+
+		const fund = fundKey && row[fundKey] ? row[fundKey].trim() : null;
+		const dateStr = dateKey && row[dateKey] ? row[dateKey].trim() : null;
+		const price = priceKey ? parseFloat(row[priceKey]) : NaN;
+
+		if (fund && dateStr && !isNaN(price)) {
+		  if (!fundMap[fund]) fundMap[fund] = {};
+		  const dateObj = parseDateStr(dateStr);
+		  if (dateObj) {
+			const timeKey = dateObj.getTime();
+			fundMap[fund][timeKey] = price;
+			dateSet.set(timeKey, dateObj);
+		  }
+		}
+	  });
+
+	  allDates = Array.from(dateSet.values()).sort((a, b) => a.getTime() - b.getTime());
+	  if (allDates.length === 0) return;
+
+	  const funds = Object.keys(fundMap).sort();
+	  selectedFund = funds.find(f => f.includes('Cash')) || funds[0];
+
+	  renderFundGrid();
+	  applyDefaultDateRanges();
+	}
+
+    /* Rules-based Initialization for Date Ranges & Locks */
+    function applyDefaultDateRanges() {
+      if (allDates.length === 0) return;
+
+      const maxAvailableIdx = allDates.length - 1;
+
+      // Rule 1: Horizontal end = maxMonth - 1, start = -23 months (locked)
+      xMaxIdx = Math.max(0, maxAvailableIdx - 1);
+      xMinIdx = Math.max(0, xMaxIdx - 23);
+
+      // Rule 2: Vertical end = maxMonth, start = -23 months (locked)
+      yMaxIdx = maxAvailableIdx;
+      yMinIdx = Math.max(0, yMaxIdx - 23);
+
+      document.getElementById('xLockToggle').checked = true;
+      document.getElementById('yLockToggle').checked = true;
+
+      setupSliders('x');
+      setupSliders('y');
+      renderMatrix();
+    }
+
+    function renderFundGrid() {
+      const grid = document.getElementById('fundGrid');
+      grid.innerHTML = '';
+      const funds = Object.keys(fundMap).sort();
+
+      funds.forEach(fundName => {
+        const isSelected = (fundName === selectedFund);
+        const tile = document.createElement('div');
+        tile.className = `fund-radio-tile ${isSelected ? 'selected' : ''}`;
+        tile.innerHTML = `<input type="radio" name="fundRadio" ${isSelected ? 'checked' : ''}> <span>${fundName}</span>`;
+        tile.onclick = () => {
+          if (selectedFund !== fundName) {
+            selectedFund = fundName;
+            document.getElementById('activeFundDisplay').innerText = selectedFund;
+            renderFundGrid();
+            // Re-apply rules 1 & 2 whenever a new fund is selected
+            applyDefaultDateRanges();
+          }
+        };
+        grid.appendChild(tile);
+      });
+
+      document.getElementById('activeFundDisplay').innerText = selectedFund || 'None';
+    }
+
+    function formatYearMonth(date) {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      return `${yyyy}-${mm}`;
+    }
+
+    function setupSliders(axis) {
+      const minEl = document.getElementById(`${axis}SliderMin`);
+      const maxEl = document.getElementById(`${axis}SliderMax`);
+      const minIdx = (axis === 'x') ? xMinIdx : yMinIdx;
+      const maxIdx = (axis === 'x') ? xMaxIdx : yMaxIdx;
+
+      minEl.min = 0; minEl.max = allDates.length - 1; minEl.value = minIdx;
+      maxEl.min = 0; maxEl.max = allDates.length - 1; maxEl.value = maxIdx;
+
+      updateSliderUI(axis);
+      updateMonthInputsUI(axis);
+    }
+
+    function updateSliderUI(axis) {
+      const minEl = document.getElementById(`${axis}SliderMin`);
+      const maxEl = document.getElementById(`${axis}SliderMax`);
+      const fill = document.getElementById(`${axis}SliderTrackFill`);
+      const total = allDates.length > 1 ? allDates.length - 1 : 1;
+
+      const leftPct = (minEl.value / total) * 100;
+      const rightPct = (maxEl.value / total) * 100;
+
+      fill.style.left = leftPct + '%';
+      fill.style.width = (rightPct - leftPct) + '%';
+    }
+
+    function updateMonthInputsUI(axis) {
+      const minIdx = (axis === 'x') ? xMinIdx : yMinIdx;
+      const maxIdx = (axis === 'x') ? xMaxIdx : yMaxIdx;
+      document.getElementById(`${axis}StartMonth`).value = formatYearMonth(allDates[minIdx]);
+      document.getElementById(`${axis}EndMonth`).value = formatYearMonth(allDates[maxIdx]);
+    }
+
+    function onSyncLockToggleChange() {
+      const isSyncLocked = document.getElementById('syncLockToggle').checked;
+      if (isSyncLocked) {
+        document.getElementById('xLockToggle').checked = true;
+        document.getElementById('yLockToggle').checked = true;
+      }
+    }
+
+    function onAxisLockChange(axis) {
+      const xLocked = document.getElementById('xLockToggle').checked;
+      const yLocked = document.getElementById('yLockToggle').checked;
+      if (!xLocked || !yLocked) {
+        document.getElementById('syncLockToggle').checked = false;
+      }
+    }
+
+    function shiftAxisRange(axis, delta) {
+      let minIdx = (axis === 'x') ? xMinIdx : yMinIdx;
+      let maxIdx = (axis === 'x') ? xMaxIdx : yMaxIdx;
+      const span = maxIdx - minIdx;
+
+      let newMin = minIdx + delta;
+      let newMax = maxIdx + delta;
+
+      if (newMin < 0) {
+        newMin = 0;
+        newMax = newMin + span;
+      }
+      if (newMax >= allDates.length) {
+        newMax = allDates.length - 1;
+        newMin = newMax - span;
+      }
+
+      const actualDelta = newMin - minIdx;
+
+      if (axis === 'x') {
+        xMinIdx = newMin;
+        xMaxIdx = newMax;
+      } else {
+        yMinIdx = newMin;
+        yMaxIdx = newMax;
+      }
+
+      document.getElementById(`${axis}SliderMin`).value = (axis === 'x') ? xMinIdx : yMinIdx;
+      document.getElementById(`${axis}SliderMax`).value = (axis === 'x') ? xMaxIdx : yMaxIdx;
+      updateSliderUI(axis);
+      updateMonthInputsUI(axis);
+
+      return actualDelta;
+    }
+
+    function onSliderInput(axis, changed) {
+      const minEl = document.getElementById(`${axis}SliderMin`);
+      const maxEl = document.getElementById(`${axis}SliderMax`);
+      const isAxisLocked = document.getElementById(`${axis}LockToggle`).checked;
+      const isSyncLocked = document.getElementById('syncLockToggle').checked;
+
+      let oldMin = (axis === 'x') ? xMinIdx : yMinIdx;
+      let valMin = parseInt(minEl.value);
+      let valMax = parseInt(maxEl.value);
+      let currentSpan = (axis === 'x') ? (xMaxIdx - xMinIdx) : (yMaxIdx - yMinIdx);
+
+      if (isSyncLocked || isAxisLocked) {
+        let delta = 0;
+        if (changed === 'min') {
+          delta = valMin - oldMin;
+        } else {
+          let oldMax = (axis === 'x') ? xMaxIdx : yMaxIdx;
+          delta = valMax - oldMax;
+        }
+
+        const actualDelta = shiftAxisRange(axis, delta);
+
+        if (isSyncLocked && actualDelta !== 0) {
+          const otherAxis = (axis === 'x') ? 'y' : 'x';
+          shiftAxisRange(otherAxis, actualDelta);
+        }
+      } else {
+        if (valMin >= valMax) {
+          if (changed === 'min') minEl.value = valMax - 1;
+          else maxEl.value = valMin + 1;
+        }
+
+        if (axis === 'x') { xMinIdx = parseInt(minEl.value); xMaxIdx = parseInt(maxEl.value); }
+        else { yMinIdx = parseInt(minEl.value); yMaxIdx = parseInt(maxEl.value); }
+
+        updateSliderUI(axis);
+        updateMonthInputsUI(axis);
+      }
+
+      renderMatrix();
+    }
+
+    function onManualMonthChange(axis) {
+      const startVal = document.getElementById(`${axis}StartMonth`).value;
+      const endVal = document.getElementById(`${axis}EndMonth`).value;
+      if (!startVal || !endVal) return;
+
+      const isAxisLocked = document.getElementById(`${axis}LockToggle`).checked;
+      const isSyncLocked = document.getElementById('syncLockToggle').checked;
+      const currentSpan = (axis === 'x') ? (xMaxIdx - xMinIdx) : (yMaxIdx - yMinIdx);
+
+      const [sY, sM] = startVal.split('-').map(Number);
+      const [eY, eM] = endVal.split('-').map(Number);
+
+      let oldMin = (axis === 'x') ? xMinIdx : yMinIdx;
+      let newMin = allDates.findIndex(d => d.getFullYear() === sY && (d.getMonth() + 1) === sM);
+      if (newMin === -1) newMin = 0;
+
+      let delta = newMin - oldMin;
+
+      if (isSyncLocked || isAxisLocked) {
+        const actualDelta = shiftAxisRange(axis, delta);
+        if (isSyncLocked && actualDelta !== 0) {
+          const otherAxis = (axis === 'x') ? 'y' : 'x';
+          shiftAxisRange(otherAxis, actualDelta);
+        }
+      } else {
+        let newMax = allDates.slice().reverse().findIndex(d => d.getFullYear() === eY && (d.getMonth() + 1) === eM);
+        newMax = (newMax === -1) ? allDates.length - 1 : (allDates.length - 1) - newMax;
+
+        if (newMin < newMax) {
+          if (axis === 'x') { xMinIdx = newMin; xMaxIdx = newMax; }
+          else { yMinIdx = newMin; yMaxIdx = newMax; }
+
+          document.getElementById(`${axis}SliderMin`).value = newMin;
+          document.getElementById(`${axis}SliderMax`).value = newMax;
+          updateSliderUI(axis);
+          updateMonthInputsUI(axis);
+        }
+      }
+
+      renderMatrix();
+    }
+
+    /* Interpolated Background Color Calculation */
+    function getCellColor(pct) {
+      if (pct <= 0) return { bg: '#fecaca', text: '#991b1b' }; // Soft Red
+      if (pct >= 5) return { bg: '#bbf7d0', text: '#166534' }; // Soft Green
+
+      const ratio = pct / 5.0; 
+      let r, g, b;
+
+      if (ratio < 0.5) {
+        const t = ratio * 2;
+        r = 254;
+        g = Math.round(202 + (240 - 202) * t);
+        b = Math.round(202 * (1 - t) + 138 * t);
+      } else {
+        const t = (ratio - 0.5) * 2;
+        r = Math.round(254 * (1 - t) + 187 * t);
+        g = Math.round(240 * (1 - t) + 247 * t);
+        b = Math.round(138 * (1 - t) + 208 * t);
+      }
+
+      return { bg: `rgb(${r}, ${g}, ${b})`, text: '#0f172a' };
+    }
+
+    function renderMatrix() {
+      if (!selectedFund || !fundMap[selectedFund]) return;
+
+      const prices = fundMap[selectedFund];
+      const xDates = allDates.slice(xMinIdx, xMaxIdx + 1);
+      const yDates = allDates.slice(yMinIdx, yMaxIdx + 1);
+
+      const headerRow = document.getElementById('matrixHeaderRow');
+      headerRow.innerHTML = '<th class="first-col-header">Date</th>';
+      xDates.forEach(d => {
+        headerRow.innerHTML += `<th>${formatYearMonth(d)}</th>`;
+      });
+
+      const body = document.getElementById('matrixBody');
+      body.innerHTML = '';
+
+      yDates.forEach(yD => {
+        const yTime = yD.getTime();
+        const yPrice = prices[yTime];
+
+        let tr = document.createElement('tr');
+        tr.innerHTML = `<td class="row-header">${formatYearMonth(yD)}</td>`;
+
+        xDates.forEach(xD => {
+          const xTime = xD.getTime();
+          const xPrice = prices[xTime];
+
+          if (xTime >= yTime || !xPrice || !yPrice) {
+            tr.innerHTML += '<td style="background-color: transparent;"></td>';
+          } else {
+            const pct = ((yPrice - xPrice) / xPrice) * 100;
+            const style = getCellColor(pct);
+            tr.innerHTML += `<td style="background-color: ${style.bg}; color: ${style.text};">${pct.toFixed(1)}%</td>`;
+          }
+        });
+
+        body.appendChild(tr);
+      });
+    }
+  </script>
+</body>
+</html>
