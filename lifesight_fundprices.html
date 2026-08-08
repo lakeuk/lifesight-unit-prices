@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LifeSight Fund Analytics Dashboard</title>
+  
+  <!-- Core Chart.js, Luxon Date Adapter, and PapaParse CDNs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #cbd5e1;
+      --primary-dark: #0f172a;
+      --accent-blue: #2563eb;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --tile-inactive-bg: #f1f5f9;
+      --tile-inactive-text: #334155;
+      --grid-color: #f1f5f9;
+      --input-bg: #ffffff;
+    }
+
+    body.dark-mode {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --border-color: #334155;
+      --primary-dark: #f8fafc;
+      --accent-blue: #3b82f6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --tile-inactive-bg: #334155;
+      --tile-inactive-text: #cbd5e1;
+      --grid-color: #334155;
+      --input-bg: #0f172a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 12px; display: flex; flex-direction: column; gap: 12px; min-height: 100vh; transition: background-color 0.2s, color 0.2s; }
+
+    /* Top Navigation Tabs */
+    .view-mode-container { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background-color: var(--border-color); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
+    .mode-tab { background: var(--card-bg); border: none; padding: 10px 14px; font-size: 0.95rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.2s; text-align: center; }
+    .mode-tab.active { background: var(--card-bg); color: var(--text-main); box-shadow: inset 0 -3px 0 var(--accent-blue); }
+
+    /* Card Containers */
+    .dashboard-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+
+    /* File Dropzone & Actions Toolbar */
+    .top-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+    .toolbar-left { display: flex; align-items: center; gap: 10px; flex-grow: 1; }
+    
+    .file-dropzone { border: 2px dashed var(--border-color); border-radius: 6px; padding: 6px 12px; text-align: center; background: var(--input-bg); cursor: pointer; flex-grow: 1; transition: border-color 0.2s; font-size: 0.82rem; }
+    .file-dropzone:hover { border-color: var(--accent-blue); }
+    .file-dropzone input { display: none; }
+    .file-dropzone label { cursor: pointer; font-weight: 600; color: var(--accent-blue); }
+
+    .export-controls { display: flex; gap: 6px; align-items: center; }
+    .btn { padding: 6px 10px; font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); border-radius: 5px; cursor: pointer; transition: background 0.15s, color 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: var(--accent-blue); color: #ffffff; border-color: var(--accent-blue); }
+    
+    .theme-toggle-btn { padding: 6px 10px; font-size: 0.8rem; font-weight: 600; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); border-radius: 5px; cursor: pointer; white-space: nowrap; }
+
+    /* Legend Display Row */
+    .legend-display { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 0.82rem; min-height: 20px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+    /* Chart Canvas */
+    .chart-wrapper { position: relative; height: 380px; width: 100%; }
+
+    /* Controls & Dual Range Slider */
+    .controls-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+    .date-controls { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; }
+    .date-inputs { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+    .date-input-group { display: flex; flex-direction: column; gap: 2px; }
+    .date-input-group input, select { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 0.82rem; color: var(--text-main); background: var(--input-bg); }
+
+    .lock-toggle-group { display: flex; align-items: center; gap: 5px; padding-bottom: 4px; font-size: 0.8rem; font-weight: 600; color: var(--text-main); cursor: pointer; user-select: none; }
+
+    .preset-row { display: flex; gap: 4px; }
+    .preset-btn { padding: 4px 8px; font-size: 0.75rem; background: var(--tile-inactive-bg); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; font-weight: 600; color: var(--text-muted); }
+    .preset-btn:hover { opacity: 0.8; }
+
+    /* Range Slider - Cross-Browser Fixes for Firefox/Edge */
+    .slider-container { position: relative; height: 26px; display: flex; align-items: center; width: 100%; margin-top: 2px; }
+    .slider-track-bg { position: absolute; width: 100%; height: 5px; background-color: var(--border-color); border-radius: 3px; }
+    .slider-track-fill { position: absolute; height: 5px; background-color: var(--accent-blue); border-radius: 3px; }
+    .range-input { 
+      position: absolute; 
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%; 
+      background: transparent; 
+      pointer-events: none; 
+      -webkit-appearance: none; 
+      -moz-appearance: none;
+      appearance: none; 
+      margin: 0; 
+      border: none;
+      outline: none;
+    }
+    .range-input::-webkit-slider-runnable-track { background: transparent; border: none; }
+    .range-input::-moz-range-track { background: transparent; border: none; }
+    .range-input::-webkit-slider-thumb { 
+      height: 16px; 
+      width: 16px; 
+      border-radius: 50%; 
+      background: #ffffff; 
+      border: 2px solid var(--accent-blue); 
+      cursor: pointer; 
+      pointer-events: auto; 
+      -webkit-appearance: none; 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3); 
+    }
+    .range-input::-moz-range-thumb { 
+      height: 16px; 
+      width: 16px; 
+      border-radius: 50%; 
+      background: #ffffff; 
+      border: 2px solid var(--accent-blue); 
+      cursor: pointer; 
+      pointer-events: auto; 
+      -moz-appearance: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3); 
+      box-sizing: border-box;
+    }
+
+    /* Compact Fund Selection Section */
+    .fund-selector-section { display: flex; flex-direction: column; gap: 8px; background: var(--input-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); }
+    .fund-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .search-input { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 5px; width: 170px; font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); }
+    .filter-select { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); font-weight: 600; }
+    
+    /* Micro Tile Grid */
+    .fund-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; max-height: 140px; overflow-y: auto; padding-right: 2px; }
+    .fund-tile { 
+      padding: 5px 8px; 
+      background-color: var(--tile-inactive-bg); 
+      color: var(--tile-inactive-text); 
+      border: 1px solid var(--border-color); 
+      border-left: 4px solid var(--border-color);
+      border-radius: 4px; 
+      font-size: 0.72rem; 
+      font-weight: 600; 
+      cursor: pointer; 
+      user-select: none; 
+      display: flex; 
+      align-items: center; 
+      justify-content: flex-start; 
+      min-height: 32px; 
+      transition: all 0.15s ease; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+    }
+    .fund-tile:hover { filter: brightness(0.95); }
+    .fund-tile.selected { 
+      background-color: var(--card-bg); 
+      color: var(--text-main); 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      font-weight: 700;
+    }
+
+    /* Analytics Table */
+    .metrics-section { margin-top: 4px; }
+    .metrics-header { font-size: 0.88rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main); }
+    .table-wrapper { overflow-x: auto; }
+    .metrics-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
+    .metrics-table th, .metrics-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+    .metrics-table th { background-color: var(--tile-inactive-bg); font-weight: 600; color: var(--text-muted); }
+    .metrics-table tr:hover { background-color: var(--tile-inactive-bg); }
+    .positive-val { color: #10b981; font-weight: 600; }
+    .negative-val { color: #ef4444; font-weight: 600; }
+
+    @media (max-width: 768px) {
+      .fund-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+      .chart-wrapper { height: 300px; }
+      .toolbar-left { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mode Navigation -->
+  <div class="view-mode-container">
+    <button id="tabPercent" class="mode-tab active" onclick="setViewMode('percent')">Percent Change Chart</button>
+    <button id="tabUnitPrice" class="mode-tab" onclick="setViewMode('unit')">Unit Price Chart</button>
+  </div>
+
+  <div class="dashboard-card">
+    
+    <!-- Header Controls: Dark Mode, Dropzone & Exports -->
+    <div class="top-toolbar">
+      <div class="toolbar-left">
+        <button id="darkModeToggle" class="theme-toggle-btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+        <div class="file-dropzone" id="dropzone">
+          <span id="fileStatus">📁 Drag & drop <strong>lifesight_fundprices.csv</strong> or </span>
+          <label for="csvFileInput">Browse File</label>
+          <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
+        </div>
+      </div>
+      <div class="export-controls">
+        <button class="btn" onclick="exportCSVData()">📥 Export CSV</button>
+        <button class="btn btn-primary" onclick="exportChartImage()">📷 Export Chart</button>
+      </div>
+    </div>
+
+    <!-- Active Legend Display -->
+    <div id="legendDisplay" class="legend-display">
+      <span style="font-weight: 600; color: var(--text-muted);">Selected:</span>
+      <span id="legendItems">Please load dataset...</span>
+    </div>
+
+    <!-- Chart Canvas -->
+    <div class="chart-wrapper">
+      <canvas id="fundChart"></canvas>
+    </div>
+
+    <!-- Date Range & Controls Bar -->
+    <div class="controls-row">
+      <div class="date-controls">
+        <div class="date-inputs">
+          <div class="date-input-group">
+            <label>Start Date</label>
+            <input type="date" id="startDateInput" onchange="onManualDateChange()">
+          </div>
+          <div class="date-input-group">
+            <label>End Date</label>
+            <input type="date" id="endDateInput" onchange="onManualDateChange()">
+          </div>
+          <label class="lock-toggle-group">
+            <input type="checkbox" id="lockSpanToggle"> 🔒 Lock Span
+          </label>
+          <div class="date-input-group">
+            <label>Benchmark Target</label>
+            <select id="benchmarkSelect" onchange="updateDashboard()">
+              <option value="none">None</option>
+              <option value="fixed2">Target +2.0% p.a.</option>
+              <option value="fixed5">Target +5.0% p.a.</option>
+              <option value="fixed7">Target +7.0% p.a.</option>
+              <option value="fixed9">Target +9.0% p.a.</option>
+              <option value="fixed11">Target +11.0% p.a.</option>
+              <option value="fixed13">Target +13.0% p.a.</option>
+            </select>
+          </div>
+          <div class="preset-row">
+            <button class="preset-btn" onclick="setPresetRange('1Y')">1Y</button>
+            <button class="preset-btn" onclick="setPresetRange('3Y')">3Y</button>
+            <button class="preset-btn" onclick="setPresetRange('5Y')">5Y</button>
+            <button class="preset-btn" onclick="setPresetRange('MAX')">MAX</button>
+          </div>
+        </div>
+
+        <!-- Range Slider -->
+        <div class="slider-container">
+          <div class="slider-track-bg"></div>
+          <div id="sliderTrackFill" class="slider-track-fill"></div>
+          <input type="range" id="sliderMin" class="range-input" oninput="onSliderInput('min')">
+          <input type="range" id="sliderMax" class="range-input" oninput="onSliderInput('max')">
+        </div>
+      </div>
+    </div>
+
+    <!-- Compact Fund Tile Selection Grid -->
+    <div class="fund-selector-section">
+      <div class="fund-toolbar">
+        <div class="filter-group">
+          <label for="adminSelect" style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Admin:</label>
+          <select id="adminSelect" class="filter-select" onchange="renderFundGrid()">
+            <option value="All">All</option>
+            <option value="LifeSight" selected>LifeSight</option>
+            <option value="BlackRock">BlackRock</option>
+          </select>
+
+          <input type="text" id="searchInput" class="search-input" placeholder="Search funds..." oninput="renderFundGrid()">
+        </div>
+
+        <div class="toolbar-actions">
+          <button class="btn" onclick="resetToDefaultSelection()">LifeCycle Defaults</button>
+          <button class="btn" onclick="selectAllVisibleFunds()">Select All</button>
+          <button class="btn" onclick="clearAllFunds()">Clear All</button>
+        </div>
+      </div>
+
+      <div id="fundGrid" class="fund-grid"></div>
+    </div>
+
+    <!-- Risk & Return Table -->
+    <div class="metrics-section">
+      <div class="metrics-header">📊 Selected Range Risk & Performance Analytics</div>
+      <div class="table-wrapper">
+        <table class="metrics-table">
+          <thead>
+            <tr>
+              <th>Fund Name</th>
+              <th>Administrator</th>
+              <th>Start Price</th>
+              <th>End Price</th>
+              <th title="The overall percentage gain or loss of the fund across the entire selected date range.">Total Return</th>
+              <th title="Compound Annual Growth Rate: The average annualized rate of return over the selected timeframe.">Ann. Return (CAGR)</th>
+              <th title="Annualized Volatility: A measure of price fluctuation and risk; higher percentages mean larger price swings.">Ann. Volatility</th>
+              <th title="Maximum Drawdown: The largest percentage drop from peak to trough, highlighting worst-case downside risk.">Max Drawdown</th>
+              <th title="Sharpe Ratio (R_f=2%): Measures return generated relative to risk taken above a 2% baseline rate. Higher is better.">Sharpe (R_f=2%)</th>
+            </tr>
+          </thead>
+          <tbody id="metricsTableBody">
+            <tr><td colspan="9" style="text-align:center; color: var(--text-muted);">No dataset loaded</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const PALETTE = [
+      '#2563eb', '#10b981', '#ea580c', '#7c3aed', '#dc2626', 
+      '#0891b2', '#db2777', '#059669', '#d97706', '#4f46e5'
+    ];
+
+    let fundMap = {};       
+    let fundAdminMap = {};  
+    let fundColorMap = {};
+    let allAdmins = new Set();
+    let allDates = [];
+    let selectedFunds = new Set([
+      'LifeSight Equity - LSEQ',
+      'LifeSight Diversified Growth - LSDG',
+      'LifeSight Cash - LSCA'
+    ]);
+    let currentViewMode = 'percent';
+    let chartInstance = null;
+    let minDateIdx = 0;
+    let maxDateIdx = 0;
+    let isDarkMode = false;
+
+    // Custom Plugin to ensure exported image has a solid background
+    const backgroundPlugin = {
+      id: 'customCanvasBackgroundColor',
+      beforeDraw: (chart) => {
+        const ctx = chart.canvas.getContext('2d');
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = isDarkMode ? '#1e293b' : '#ffffff';
+        ctx.fillRect(0, 0, chart.width, chart.height);
+        ctx.restore();
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initChart();
+      
+      fetch('lifesight_fundprices.csv')
+        .then(res => { if (!res.ok) throw new Error(); return res.text(); })
+        .then(csvText => parseAndInitData(csvText))
+        .catch(() => {
+          document.getElementById('fileStatus').innerHTML = "📁 Drag & drop <strong>lifesight_fundprices.csv</strong> or ";
+        });
+    });
+
+    function toggleDarkMode() {
+      isDarkMode = !isDarkMode;
+      document.body.classList.toggle('dark-mode', isDarkMode);
+      document.getElementById('darkModeToggle').innerText = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+      
+      if (chartInstance) {
+        chartInstance.options.scales.x.grid.color = isDarkMode ? '#334155' : '#f1f5f9';
+        chartInstance.options.scales.x.ticks.color = isDarkMode ? '#94a3b8' : '#64748b';
+        chartInstance.options.scales.y.grid.color = isDarkMode ? '#334155' : '#f1f5f9';
+        chartInstance.options.scales.y.ticks.color = isDarkMode ? '#94a3b8' : '#64748b';
+        chartInstance.update();
+      }
+    }
+
+    const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = '#2563eb'; });
+    dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = 'var(--border-color)'; });
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = 'var(--border-color)';
+      if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+    });
+
+    function handleFileSelect(event) {
+      if (event.target.files.length > 0) processFile(event.target.files[0]);
+    }
+
+    function processFile(file) {
+      document.getElementById('fileStatus').innerHTML = `Loaded: <strong>${file.name}</strong>`;
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: function(h) { return h ? h.replace(/^\ufeff/, '').trim() : ''; },
+        complete: function(results) { parseAndInitDataFromRows(results.data); }
+      });
+    }
+
+    function parseAndInitData(csvText) {
+      Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: function(h) { return h ? h.replace(/^\ufeff/, '').trim() : ''; },
+        complete: function(results) { parseAndInitDataFromRows(results.data); }
+      });
+    }
+
+    function parseDateStr(str) {
+      if (!str) return null;
+      const cleanStr = str.replace(/^\ufeff/, '').trim();
+      const parts = cleanStr.split(/[-/.]/);
+      
+      if (parts.length === 3) {
+        const p0 = parseInt(parts[0], 10);
+        const p1 = parseInt(parts[1], 10);
+        const p2 = parseInt(parts[2], 10);
+
+        if (!isNaN(p0) && !isNaN(p1) && !isNaN(p2)) {
+          // YYYY-MM-DD or YYYY/MM/DD
+          if (parts[0].length === 4) {
+            return new Date(p0, p1 - 1, p2);
+          }
+          // DD/MM/YYYY or DD-MM-YYYY
+          if (parts[2].length === 4) {
+            return new Date(p2, p1 - 1, p0);
+          }
+        }
+      }
+
+      const fallback = new Date(cleanStr);
+      return isNaN(fallback.getTime()) ? null : new Date(fallback.getFullYear(), fallback.getMonth(), fallback.getDate());
+    }
+
+    function parseISODateLocal(isoStr) {
+      if (!isoStr) return null;
+      const parts = isoStr.split('-');
+      if (parts.length === 3) {
+        return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      }
+      return parseDateStr(isoStr);
+    }
+
+    function parseAndInitDataFromRows(rows) {
+      fundMap = {};
+      fundAdminMap = {};
+      fundColorMap = {};
+      allAdmins = new Set();
+      const dateMap = new Map();
+
+      rows.forEach(row => {
+        const fundKey = Object.keys(row).find(k => k.replace(/^\ufeff/, '').trim().toLowerCase() === 'fund');
+        const dateKey = Object.keys(row).find(k => k.replace(/^\ufeff/, '').trim().toLowerCase() === 'date');
+        const priceKey = Object.keys(row).find(k => k.replace(/^\ufeff/, '').trim().toLowerCase() === 'unitprice');
+        const adminKey = Object.keys(row).find(k => k.replace(/^\ufeff/, '').trim().toLowerCase() === 'administrator');
+
+        const fund = fundKey && row[fundKey] ? row[fundKey].trim() : null;
+        const dateStr = dateKey && row[dateKey] ? row[dateKey].trim() : null;
+        const price = priceKey ? parseFloat(row[priceKey]) : NaN;
+        const admin = adminKey && row[adminKey] ? row[adminKey].trim() : 'LifeSight';
+
+        if (fund && dateStr && !isNaN(price)) {
+          if (!fundMap[fund]) fundMap[fund] = [];
+          fundAdminMap[fund] = admin;
+          allAdmins.add(admin);
+
+          const dateObj = parseDateStr(dateStr);
+          if (dateObj && !isNaN(dateObj.getTime())) {
+            fundMap[fund].push({ date: dateObj, dateStr: dateStr, price: price });
+            dateMap.set(dateObj.getTime(), dateObj);
+          }
+        }
+      });
+
+      const sortedFundNames = Object.keys(fundMap).sort();
+      sortedFundNames.forEach((fund, idx) => {
+        fundMap[fund].sort((a, b) => a.date.getTime() - b.date.getTime());
+        fundColorMap[fund] = PALETTE[idx % PALETTE.length];
+      });
+
+      allDates = Array.from(dateMap.values()).sort((a, b) => a.getTime() - b.getTime());
+      if (allDates.length === 0) return;
+
+      const adminSelect = document.getElementById('adminSelect');
+      adminSelect.innerHTML = '<option value="All">All</option>';
+      Array.from(allAdmins).sort().forEach(adm => {
+        adminSelect.innerHTML += `<option value="${adm}">${adm}</option>`;
+      });
+
+      const lifeSightOpt = Array.from(adminSelect.options).find(opt => opt.value.trim().toLowerCase() === 'lifesight');
+      if (lifeSightOpt) {
+        adminSelect.value = lifeSightOpt.value;
+      } else if (adminSelect.options.length > 1) {
+        adminSelect.value = adminSelect.options[1].value;
+      } else {
+        adminSelect.value = 'All';
+      }
+
+      const availableFunds = Object.keys(fundMap);
+      const defaults = [
+        'LifeSight Equity - LSEQ',
+        'LifeSight Diversified Growth - LSDG',
+        'LifeSight Cash - LSCA'
+      ];
+      selectedFunds.clear();
+      defaults.forEach(f => { if (availableFunds.includes(f)) selectedFunds.add(f); });
+      if (selectedFunds.size === 0 && availableFunds.length > 0) selectedFunds.add(availableFunds[0]);
+
+      renderFundGrid();
+      setPresetRange('5Y');
+    }
+
+    function initChart() {
+      const ctx = document.getElementById('fundChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: [] },
+        plugins: [backgroundPlugin],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { 
+              display: false,
+              position: 'top',
+              labels: {
+                color: () => isDarkMode ? '#f8fafc' : '#0f172a',
+                usePointStyle: true,
+                boxWidth: 8
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  if (currentViewMode === 'percent') {
+                    label += (context.parsed.y >= 0 ? '+' : '') + context.parsed.y.toFixed(1) + '%';
+                  } else {
+                    label += '£' + context.parsed.y.toFixed(4);
+                  }
+                  return label;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { 
+              type: 'time', 
+              grid: { display: true, color: '#f1f5f9' },
+              ticks: { autoSkip: true, maxRotation: 0, color: '#64748b' }
+            },
+            y: {
+              grid: { color: '#f1f5f9' },
+              ticks: { 
+                callback: function(value) { 
+                  return currentViewMode === 'percent' 
+                    ? Number(value).toFixed(1) + '%' 
+                    : '£' + Number(value).toFixed(4); 
+                } 
+              }
+            }
+          },
+          elements: { line: { tension: 0.1, borderWidth: 2 }, point: { radius: 0, hoverRadius: 4 } }
+        }
+      });
+    }
+
+    function setupSlider() {
+      const sliderMin = document.getElementById('sliderMin');
+      const sliderMax = document.getElementById('sliderMax');
+      sliderMin.min = 0; sliderMin.max = allDates.length - 1; sliderMin.value = minDateIdx;
+      sliderMax.min = 0; sliderMax.max = allDates.length - 1; sliderMax.value = maxDateIdx;
+      updateSliderUI();
+      updateDateInputsUI();
+    }
+
+    function onSliderInput(changed) {
+      let sliderMin = document.getElementById('sliderMin');
+      let sliderMax = document.getElementById('sliderMax');
+      let isLocked = document.getElementById('lockSpanToggle').checked;
+
+      let valMin = parseInt(sliderMin.value);
+      let valMax = parseInt(sliderMax.value);
+
+      if (isLocked) {
+        let currentSpan = maxDateIdx - minDateIdx;
+        if (changed === 'min') {
+          valMax = valMin + currentSpan;
+          if (valMax >= allDates.length) {
+            valMax = allDates.length - 1;
+            valMin = valMax - currentSpan;
+          }
+        } else {
+          valMin = valMax - currentSpan;
+          if (valMin < 0) {
+            valMin = 0;
+            valMax = currentSpan;
+          }
+        }
+        sliderMin.value = valMin;
+        sliderMax.value = valMax;
+      } else {
+        if (valMin >= valMax) {
+          if (changed === 'min') sliderMin.value = valMax - 1;
+          else sliderMax.value = valMin + 1;
+        }
+      }
+
+      minDateIdx = parseInt(sliderMin.value);
+      maxDateIdx = parseInt(sliderMax.value);
+
+      updateSliderUI();
+      updateDateInputsUI();
+      updateDashboard();
+    }
+
+    function updateSliderUI() {
+      const sliderMin = document.getElementById('sliderMin');
+      const sliderMax = document.getElementById('sliderMax');
+      const fill = document.getElementById('sliderTrackFill');
+
+      const total = allDates.length > 1 ? allDates.length - 1 : 1;
+      const leftPct = (sliderMin.value / total) * 100;
+      const rightPct = (sliderMax.value / total) * 100;
+
+      fill.style.left = leftPct + '%';
+      fill.style.width = (rightPct - leftPct) + '%';
+    }
+
+    function updateDateInputsUI() {
+      if (allDates.length === 0) return;
+      document.getElementById('startDateInput').value = formatDateISO(allDates[minDateIdx]);
+      document.getElementById('endDateInput').value = formatDateISO(allDates[maxDateIdx]);
+    }
+
+    function onManualDateChange() {
+      const startVal = document.getElementById('startDateInput').value;
+      const endVal = document.getElementById('endDateInput').value;
+      if (!startVal || !endVal) return;
+
+      const isLocked = document.getElementById('lockSpanToggle').checked;
+      const currentSpan = maxDateIdx - minDateIdx;
+
+      const startD = parseISODateLocal(startVal);
+      const endD = parseISODateLocal(endVal);
+
+      let newMinIdx = allDates.findIndex(d => d.getTime() >= startD.getTime());
+      if (newMinIdx === -1) newMinIdx = 0;
+
+      let newMaxIdx;
+      if (isLocked) {
+        newMaxIdx = newMinIdx + currentSpan;
+        if (newMaxIdx >= allDates.length) {
+          newMaxIdx = allDates.length - 1;
+          newMinIdx = newMaxIdx - currentSpan;
+        }
+      } else {
+        newMaxIdx = allDates.slice().reverse().findIndex(d => d.getTime() <= endD.getTime());
+        if (newMaxIdx === -1) newMaxIdx = allDates.length - 1;
+        else newMaxIdx = (allDates.length - 1) - newMaxIdx;
+      }
+
+      if (newMinIdx < newMaxIdx) {
+        minDateIdx = newMinIdx;
+        maxDateIdx = newMaxIdx;
+        document.getElementById('sliderMin').value = minDateIdx;
+        document.getElementById('sliderMax').value = maxDateIdx;
+        updateSliderUI();
+        updateDateInputsUI();
+        updateDashboard();
+      }
+    }
+
+    function setPresetRange(preset) {
+      if (allDates.length === 0) return;
+      const maxDate = allDates[allDates.length - 1];
+      let targetStartDate = new Date(maxDate);
+
+      if (preset === '1Y') targetStartDate.setFullYear(maxDate.getFullYear() - 1);
+      else if (preset === '3Y') targetStartDate.setFullYear(maxDate.getFullYear() - 3);
+      else if (preset === '5Y') targetStartDate.setFullYear(maxDate.getFullYear() - 5);
+      else if (preset === 'MAX') targetStartDate = allDates[0];
+
+      let newMinIdx = allDates.findIndex(d => d.getTime() >= targetStartDate.getTime());
+      if (newMinIdx === -1) newMinIdx = 0;
+
+      minDateIdx = newMinIdx;
+      maxDateIdx = allDates.length - 1;
+
+      setupSlider();
+      updateDashboard();
+    }
+
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      document.getElementById('tabPercent').classList.toggle('active', mode === 'percent');
+      document.getElementById('tabUnitPrice').classList.toggle('active', mode === 'unit');
+      updateDashboard();
+    }
+
+    function updateDashboard() {
+      if (!chartInstance || allDates.length === 0) return;
+
+      const startDate = allDates[minDateIdx];
+      const endDate = allDates[maxDateIdx];
+      const datasets = [];
+      const legendItemsHtml = [];
+      const metricsData = [];
+
+      let globalMinY = Infinity;
+      let globalMaxY = -Infinity;
+
+      const daysSpan = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+      let timeUnit = 'year';
+      let stepSize = 1;
+      let displayFormat = 'yyyy';
+
+      if (daysSpan <= 90) {
+        timeUnit = 'day'; stepSize = 14; displayFormat = 'd MMM yyyy';
+      } else if (daysSpan <= 500) { 
+        timeUnit = 'month'; stepSize = 1; displayFormat = 'MMM yyyy';
+      } else if (daysSpan <= 2000) { 
+        timeUnit = 'quarter'; stepSize = 1; displayFormat = "'Q'q yyyy";
+      } else {
+        timeUnit = 'year'; stepSize = 1; displayFormat = 'yyyy';
+      }
+
+      chartInstance.options.scales.x.time = {
+        unit: timeUnit,
+        stepSize: stepSize,
+        displayFormats: { [timeUnit]: displayFormat }
+      };
+
+      selectedFunds.forEach(fundName => {
+        const fundData = fundMap[fundName];
+        if (!fundData) return;
+
+        const visibleData = fundData.filter(d => d.date.getTime() >= startDate.getTime() && d.date.getTime() <= endDate.getTime());
+        if (visibleData.length === 0) return;
+
+        const color = fundColorMap[fundName] || '#2563eb';
+
+        const basePrice = visibleData[0].price;
+        const points = visibleData.map(d => {
+          let yVal = currentViewMode === 'percent' ? ((d.price - basePrice) / basePrice) * 100 : d.price;
+          if (yVal < globalMinY) globalMinY = yVal;
+          if (yVal > globalMaxY) globalMaxY = yVal;
+          return { x: d.date.getTime(), y: yVal };
+        });
+
+        datasets.push({
+          label: fundName,
+          data: points,
+          borderColor: color,
+          backgroundColor: color,
+          pointRadius: 0
+        });
+
+        legendItemsHtml.push(`<span class="legend-item"><span class="legend-dot" style="background-color:${color}"></span>${fundName}</span>`);
+
+        const startP = visibleData[0].price;
+        const endP = visibleData[visibleData.length - 1].price;
+        const totalReturn = ((endP - startP) / startP) * 100;
+        
+        const days = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+        const years = days / 365.25;
+        const cagr = years > 0 ? (Math.pow(endP / startP, 1 / years) - 1) * 100 : totalReturn;
+
+        let maxPeak = visibleData[0].price;
+        let maxDrawdown = 0;
+        const dailyReturns = [];
+
+        for (let i = 1; i < visibleData.length; i++) {
+          const p = visibleData[i].price;
+          const prevP = visibleData[i - 1].price;
+          if (prevP > 0) dailyReturns.push((p - prevP) / prevP);
+
+          if (p > maxPeak) maxPeak = p;
+          const dd = (maxPeak - p) / maxPeak;
+          if (dd > maxDrawdown) maxDrawdown = dd;
+        }
+
+        const meanRet = dailyReturns.length > 0 ? dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length : 0;
+        const variance = dailyReturns.length > 0 ? dailyReturns.reduce((a, b) => a + Math.pow(b - meanRet, 2), 0) / dailyReturns.length : 0;
+        const annVol = Math.sqrt(variance * 252) * 100;
+
+        const rf = 2.0;
+        const sharpe = annVol > 0 ? (cagr - rf) / annVol : 0;
+
+        metricsData.push({
+          name: fundName,
+          admin: fundAdminMap[fundName] || 'LifeSight',
+          startPrice: startP,
+          endPrice: endP,
+          totalReturn: totalReturn,
+          cagr: cagr,
+          volatility: annVol,
+          maxDrawdown: maxDrawdown * 100,
+          sharpe: sharpe
+        });
+      });
+
+      const bmSelect = document.getElementById('benchmarkSelect');
+      const bmMode = bmSelect ? bmSelect.value : 'none';
+      if (bmMode !== 'none' && datasets.length > 0) {
+        let rate = 0;
+        if (bmMode === 'fixed2') rate = 0.02;
+        if (bmMode === 'fixed5') rate = 0.05;
+        if (bmMode === 'fixed7') rate = 0.07;
+        if (bmMode === 'fixed9') rate = 0.09;
+        if (bmMode === 'fixed11') rate = 0.11;
+        if (bmMode === 'fixed13') rate = 0.13;
+
+        const days = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+        const bmPoints = [];
+        const numSteps = 50;
+
+        for (let i = 0; i <= numSteps; i++) {
+          const frac = i / numSteps;
+          const tMs = startDate.getTime() + frac * (endDate.getTime() - startDate.getTime());
+          const elapsedYears = (frac * days) / 365.25;
+
+          let bmY = 0;
+          if (currentViewMode === 'percent') {
+            bmY = (Math.pow(1 + rate, elapsedYears) - 1) * 100;
+          } else {
+            const baseP = metricsData.length > 0 ? metricsData[0].startPrice : 1;
+            bmY = baseP * Math.pow(1 + rate, elapsedYears);
+          }
+          bmPoints.push({ x: tMs, y: bmY });
+        }
+
+        datasets.push({
+          label: `Benchmark Target (${(rate * 100).toFixed(1)}% p.a.)`,
+          data: bmPoints,
+          borderColor: isDarkMode ? '#cbd5e1' : '#94a3b8',
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false
+        });
+      }
+
+      document.getElementById('legendItems').innerHTML = legendItemsHtml.length > 0 
+        ? legendItemsHtml.join(' &nbsp;•&nbsp; ') 
+        : '<span style="color:var(--text-muted)">No funds selected</span>';
+
+      if (globalMinY !== Infinity && globalMaxY !== -Infinity) {
+        const padding = (globalMaxY - globalMinY) * 0.05 || 1;
+        chartInstance.options.scales.y.min = globalMinY - padding;
+        chartInstance.options.scales.y.max = globalMaxY + padding;
+      } else {
+        delete chartInstance.options.scales.y.min;
+        delete chartInstance.options.scales.y.max;
+      }
+
+      chartInstance.data.datasets = datasets;
+      chartInstance.update();
+
+      renderMetricsTable(metricsData);
+    }
+
+    function renderMetricsTable(metrics) {
+      const tbody = document.getElementById('metricsTableBody');
+      if (metrics.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color: var(--text-muted);">No funds selected</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = metrics.map(m => {
+        const retClass = m.totalReturn >= 0 ? 'positive-val' : 'negative-val';
+        const cagrClass = m.cagr >= 0 ? 'positive-val' : 'negative-val';
+        return `
+          <tr>
+            <td><strong>${m.name}</strong></td>
+            <td><span style="font-size: 0.75rem; font-weight: 600; padding: 2px 5px; background:var(--border-color); border-radius:3px;">${m.admin}</span></td>
+            <td>£${m.startPrice.toFixed(4)}</td>
+            <td>£${m.endPrice.toFixed(4)}</td>
+            <td class="${retClass}">${m.totalReturn >= 0 ? '+' : ''}${m.totalReturn.toFixed(1)}%</td>
+            <td class="${cagrClass}">${m.cagr >= 0 ? '+' : ''}${m.cagr.toFixed(1)}%</td>
+            <td>${m.volatility.toFixed(1)}%</td>
+            <td class="negative-val">-${m.maxDrawdown.toFixed(1)}%</td>
+            <td>${m.sharpe.toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderFundGrid() {
+      const grid = document.getElementById('fundGrid');
+      const funds = Object.keys(fundMap).sort();
+      grid.innerHTML = '';
+
+      const adminFilter = document.getElementById('adminSelect').value;
+      const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+
+      funds.forEach(fundName => {
+        const admin = fundAdminMap[fundName] || 'LifeSight';
+        const matchesAdmin = (adminFilter === 'All' || admin.trim().toLowerCase() === adminFilter.trim().toLowerCase());
+        const matchesSearch = fundName.toLowerCase().includes(searchQuery);
+
+        if (matchesAdmin && matchesSearch) {
+          const isSelected = selectedFunds.has(fundName);
+          const fundColor = fundColorMap[fundName] || '#2563eb';
+
+          const tile = document.createElement('div');
+          tile.className = `fund-tile ${isSelected ? 'selected' : ''}`;
+          tile.title = fundName;
+          tile.innerText = fundName;
+
+          if (isSelected) {
+            tile.style.borderLeft = `5px solid ${fundColor}`;
+          } else {
+            tile.style.borderLeft = `4px solid var(--border-color)`;
+          }
+
+          tile.onclick = () => {
+            if (selectedFunds.has(fundName)) {
+              selectedFunds.delete(fundName);
+            } else {
+              selectedFunds.add(fundName);
+            }
+            renderFundGrid();
+            updateDashboard();
+          };
+          grid.appendChild(tile);
+        }
+      });
+    }
+
+    function resetToDefaultSelection() {
+      selectedFunds.clear();
+      const adminSelect = document.getElementById('adminSelect');
+      const lifeSightOpt = Array.from(adminSelect.options).find(opt => opt.value.trim().toLowerCase() === 'lifesight');
+      
+      if (lifeSightOpt) {
+        adminSelect.value = lifeSightOpt.value;
+      } else {
+        adminSelect.value = 'All';
+      }
+
+      ['LifeSight Equity - LSEQ', 'LifeSight Diversified Growth - LSDG', 'LifeSight Cash - LSCA'].forEach(f => {
+        if (fundMap[f]) selectedFunds.add(f);
+      });
+      renderFundGrid();
+      setPresetRange('5Y');
+    }
+
+    function selectAllVisibleFunds() {
+      const adminFilter = document.getElementById('adminSelect').value;
+      const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+
+      Object.keys(fundMap).forEach(fundName => {
+        const admin = fundAdminMap[fundName] || 'LifeSight';
+        const matchesAdmin = (adminFilter === 'All' || admin.trim().toLowerCase() === adminFilter.trim().toLowerCase());
+        const matchesSearch = fundName.toLowerCase().includes(searchQuery);
+        if (matchesAdmin && matchesSearch) {
+          selectedFunds.add(fundName);
+        }
+      });
+      renderFundGrid();
+      updateDashboard();
+    }
+
+    function clearAllFunds() {
+      selectedFunds.clear();
+      renderFundGrid();
+      updateDashboard();
+    }
+
+    function exportChartImage() {
+      if (!chartInstance) return;
+
+      chartInstance.options.plugins.legend.display = true;
+      chartInstance.update();
+
+      const imageURI = chartInstance.toBase64Image();
+
+      chartInstance.options.plugins.legend.display = false;
+      chartInstance.update();
+
+      const link = document.createElement('a');
+      link.download = `lifesight_chart_${formatDateISO(allDates[minDateIdx])}_to_${formatDateISO(allDates[maxDateIdx])}.png`;
+      link.href = imageURI;
+      link.click();
+    }
+
+    function exportCSVData() {
+      if (allDates.length === 0) return;
+      const startDate = allDates[minDateIdx];
+      const endDate = allDates[maxDateIdx];
+
+      const csvRows = [['Administrator', 'Date', 'Fund', 'UnitPrice']];
+      selectedFunds.forEach(fundName => {
+        const data = fundMap[fundName];
+        if (!data) return;
+        const admin = fundAdminMap[fundName] || 'LifeSight';
+        data.filter(d => d.date.getTime() >= startDate.getTime() && d.date.getTime() <= endDate.getTime()).forEach(d => {
+          csvRows.push([`"${admin}"`, d.dateStr, `"${fundName}"`, d.price]);
+        });
+      });
+
+      const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `lifesight_filtered_data.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function formatDateISO(date) {
+      if (!date || isNaN(date.getTime())) return '';
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  </script>
+</body>
+</html>
