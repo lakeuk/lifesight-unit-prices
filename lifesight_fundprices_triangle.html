@@ -125,15 +125,6 @@
       </div>
     </div>
 
-    <!-- Synchronized / Master Lock Option Bar -->
-    <div class="master-lock-bar">
-      <label class="master-lock-label">
-        <input type="checkbox" id="syncLockToggle" onchange="onSyncLockToggleChange()">
-        <span>🔗 Synchronize both axes (Lock & Move Horizontal & Vertical together)</span>
-      </label>
-      <span style="font-size: 0.75rem; color: var(--text-muted);">Moving either slider shifts both date windows simultaneously</span>
-    </div>
-
     <!-- Dynamic Return Matrix Table -->
     <div class="matrix-scroll-wrapper">
       <table class="matrix-table" id="matrixTable">
@@ -143,7 +134,7 @@
           </tr>
         </thead>
         <tbody id="matrixBody">
-          <tr><td style="text-align: center; padding: 20px;" colspan="100">Loading dataset...</td></tr>
+          <tr><td style="text-align: center; padding: 20px;" colspan="100">Please load dataset...</td></tr>
         </tbody>
       </table>
     </div>
@@ -191,6 +182,15 @@
           <input type="range" id="ySliderMax" class="range-input" oninput="onSliderInput('y', 'max')">
         </div>
       </div>
+    </div>
+
+    <!-- Synchronized / Master Lock Option Bar -->
+    <div class="master-lock-bar">
+      <label class="master-lock-label">
+        <input type="checkbox" id="syncLockToggle" onchange="onSyncLockToggleChange()">
+        <span>🔗 Synchronize both axes (Lock & Move Horizontal & Vertical together)</span>
+      </label>
+      <span style="font-size: 0.75rem; color: var(--text-muted);">Moving either slider shifts both date windows simultaneously</span>
     </div>
 
     <!-- Strict Single Selection Fund Picker -->
@@ -304,7 +304,7 @@
 	  if (allDates.length === 0) return;
 
 	  const funds = Object.keys(fundMap).sort();
-	  selectedFund = funds.find(f => f.includes('Cash')) || funds[0];
+	  selectedFund = funds.find(f => f.includes('LifeSight Equity')) || funds[0];
 
 	  renderFundGrid();
 	  applyDefaultDateRanges();
