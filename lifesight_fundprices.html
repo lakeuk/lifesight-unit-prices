@@ -45,7 +45,7 @@
     body { background-color: var(--bg-color); color: var(--text-main); padding: 12px; display: flex; flex-direction: column; gap: 12px; min-height: 100vh; transition: background-color 0.2s, color 0.2s; }
 
     /* Card Containers */
-    .dashboard-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+    .dashboard-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
 
     /* File Dropzone & Actions Toolbar */
     .top-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
@@ -219,56 +219,66 @@
       box-sizing: border-box;
     }
 
-    /* Compact Fund Selection Section */
-    .fund-selector-section { display: flex; flex-direction: column; gap: 4px; background: var(--input-bg); padding: 4px; border-radius: 6px; border: 1px solid var(--border-color); }
-    .fund-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .search-input { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 5px; width: 170px; font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); }
-    .filter-select { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); font-weight: 600; }
-    
-    /* Micro Tile Grid */
-    .fund-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 3px; max-height: 145px; overflow-y: auto; padding-right: 2px; }
-    .fund-tile { 
-      padding: 5px 8px; 
-      background-color: var(--tile-inactive-bg); 
-      color: var(--tile-inactive-text); 
-      border: 1px solid var(--border-color); 
-      border-left: 4px solid var(--border-color);
-      border-radius: 4px; 
-      font-size: 0.72rem; 
-      font-weight: 600; 
-      cursor: pointer; 
-      user-select: none; 
-      display: flex; 
-      align-items: center; 
-      justify-content: flex-start; 
-      min-height: 32px; 
-      transition: all 0.15s ease; 
-      white-space: nowrap; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-    }
-    .fund-tile:hover { filter: brightness(0.95); }
-    .fund-tile.selected { 
-      background-color: var(--card-bg); 
-      color: var(--text-main); 
-      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-      font-weight: 700;
-    }
-
     /* Analytics Table */
     .metrics-section { margin-top: 4px; }
     .metrics-header { font-size: 0.88rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main); }
     .table-wrapper { overflow-x: auto; }
     .metrics-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
     .metrics-table th, .metrics-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
-    .metrics-table th { background-color: var(--tile-inactive-bg); font-weight: 600; color: var(--text-muted); }
+    .metrics-table th { background-color: var(--tile-inactive-bg); font-weight: 600; color: var(--text-muted); user-select: none; }
+    .metrics-table th.sortable { cursor: pointer; transition: background-color 0.15s, color 0.15s; }
+    .metrics-table th.sortable:hover { background-color: var(--border-color); color: var(--text-main); }
     .metrics-table tr:hover { background-color: var(--tile-inactive-bg); }
+    .sort-icon { display: inline-block; margin-left: 4px; font-size: 0.75rem; color: var(--accent-blue); }
     .positive-val { color: #10b981; font-weight: 600; }
     .negative-val { color: #ef4444; font-weight: 600; }
 
+    /* Dynamic Fund Selection Section (Moved to Bottom) */
+    .fund-selector-section { display: flex; flex-direction: column; gap: 8px; background: var(--input-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); }
+    .fund-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .search-input { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 5px; width: 180px; font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); }
+    .filter-select { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); font-weight: 600; }
+    
+    /* Dynamic Responsive Micro Tile Grid */
+    .fund-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+      gap: 6px; 
+      max-height: 220px; 
+      overflow-y: auto; 
+      padding-right: 4px; 
+    }
+    .fund-tile { 
+      padding: 6px 10px; 
+      background-color: var(--tile-inactive-bg); 
+      color: var(--tile-inactive-text); 
+      border: 1px solid var(--border-color); 
+      border-left: 4px solid var(--border-color);
+      border-radius: 5px; 
+      font-size: 0.75rem; 
+      font-weight: 600; 
+      cursor: pointer; 
+      user-select: none; 
+      display: flex; 
+      align-items: center; 
+      justify-content: flex-start; 
+      min-height: 38px; 
+      transition: all 0.15s ease; 
+      white-space: normal; 
+      word-break: break-word; 
+      line-height: 1.25;
+    }
+    .fund-tile:hover { filter: brightness(0.95); }
+    .fund-tile.selected { 
+      background-color: var(--card-bg); 
+      color: var(--text-main); 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      font-weight: 700;
+    }
+
     @media (max-width: 768px) {
-      .fund-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+      .fund-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
       .chart-wrapper { height: 300px; }
       .toolbar-left { width: 100%; }
     }
@@ -286,9 +296,9 @@
         <button id="viewToggleBtn" class="btn" onclick="toggleViewMode()">📈 Unit Price Chart</button>
 
         <div class="file-dropzone" id="dropzone">
-          <span id="fileStatus">📁 Drag & drop <strong>lifesight_fundprices.csv</strong> or </span>
-          <label for="csvFileInput">Browse File</label>
-          <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
+          <span id="fileStatus">📁 Drag & drop <strong>CSV file(s)</strong> or </span>
+          <label for="csvFileInput">Browse Files</label>
+          <input type="file" id="csvFileInput" accept=".csv" multiple onchange="handleFileSelect(event)">
         </div>
       </div>
 
@@ -359,15 +369,38 @@
       </div>
     </div>
 
-    <!-- Compact Fund Tile Selection Grid -->
+    <!-- Risk & Return Table (Moved to Middle) -->
+    <div class="metrics-section">
+      <div class="metrics-header">📊 Selected Range Risk & Performance Analytics</div>
+      <div class="table-wrapper">
+        <table class="metrics-table">
+          <thead>
+            <tr>
+              <th class="sortable" onclick="handleSort('name')">Fund Name <span id="sort-icon-name" class="sort-icon">↕</span></th>
+              <th>Administrator</th>
+              <th>Start Price</th>
+              <th>End Price</th>
+              <th class="sortable" onclick="handleSort('totalReturn')" title="The overall percentage gain or loss of the fund across the entire selected date range.">Total Return <span id="sort-icon-totalReturn" class="sort-icon">↕</span></th>
+              <th class="sortable" onclick="handleSort('cagr')" title="Compound Annual Growth Rate: The average annualised rate of return over the selected timeframe.">Ann. Return (CAGR) <span id="sort-icon-cagr" class="sort-icon">↕</span></th>
+              <th class="sortable" onclick="handleSort('volatility')" title="Annualised Volatility: A measure of price fluctuation and risk; higher percentages mean larger price swings.">Ann. Volatility <span id="sort-icon-volatility" class="sort-icon">↕</span></th>
+              <th class="sortable" onclick="handleSort('maxDrawdown')" title="Maximum Drawdown: The largest percentage drop from peak to trough, highlighting worst-case downside risk.">Max Drawdown <span id="sort-icon-maxDrawdown" class="sort-icon">↕</span></th>
+              <th class="sortable" onclick="handleSort('sharpe')" title="Sharpe Ratio (R_f=2%): Measures return generated relative to risk taken above a 2% baseline rate. Higher is better.">Sharpe (R_f=2%) <span id="sort-icon-sharpe" class="sort-icon">↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="metricsTableBody">
+            <tr><td colspan="9" style="text-align:center; color: var(--text-muted);">No dataset loaded</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Dynamic Fund Tile Selection Grid (Moved to Bottom) -->
     <div class="fund-selector-section">
       <div class="fund-toolbar">
         <div class="filter-group">
           <label for="adminSelect" style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Admin:</label>
           <select id="adminSelect" class="filter-select" onchange="renderFundGrid()">
             <option value="All">All</option>
-            <option value="LifeSight" selected>LifeSight</option>
-            <option value="BlackRock">BlackRock</option>
           </select>
 
           <input type="text" id="searchInput" class="search-input" placeholder="Search funds..." oninput="renderFundGrid()">
@@ -383,31 +416,6 @@
       <div id="fundGrid" class="fund-grid"></div>
     </div>
 
-    <!-- Risk & Return Table -->
-    <div class="metrics-section">
-      <div class="metrics-header">📊 Selected Range Risk & Performance Analytics</div>
-      <div class="table-wrapper">
-        <table class="metrics-table">
-          <thead>
-            <tr>
-              <th>Fund Name</th>
-              <th>Administrator</th>
-              <th>Start Price</th>
-              <th>End Price</th>
-              <th title="The overall percentage gain or loss of the fund across the entire selected date range.">Total Return</th>
-              <th title="Compound Annual Growth Rate: The average annualized rate of return over the selected timeframe.">Ann. Return (CAGR)</th>
-              <th title="Annualized Volatility: A measure of price fluctuation and risk; higher percentages mean larger price swings.">Ann. Volatility</th>
-              <th title="Maximum Drawdown: The largest percentage drop from peak to trough, highlighting worst-case downside risk.">Max Drawdown</th>
-              <th title="Sharpe Ratio (R_f=2%): Measures return generated relative to risk taken above a 2% baseline rate. Higher is better.">Sharpe (R_f=2%)</th>
-            </tr>
-          </thead>
-          <tbody id="metricsTableBody">
-            <tr><td colspan="9" style="text-align:center; color: var(--text-muted);">No dataset loaded</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
 
   <!-- Information Modal Box -->
@@ -421,11 +429,12 @@
         <div>
           <div class="modal-section-title">How to Use the Dashboard</div>
           <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
-            <li><strong>Load Data:</strong> Drag & drop <code>lifesight_fundprices.csv</code> or click <em>Browse File</em>.</li>
+            <li><strong>Load Data:</strong> Drag & drop or select multiple <code>.csv</code> files in a batch to compare funds across datasets.</li>
             <li><strong>Toggle View:</strong> Click the chart mode button to switch between <strong>Unit Price Chart</strong> and <strong>Percent Change Chart</strong>.</li>
             <li><strong>Select Funds:</strong> Filter funds by Administrator or Search term, then click fund tiles to toggle active display.</li>
             <li><strong>Adjust Timeframes:</strong> Drag the dual slider range, select preset ranges (1Y, 3Y, 5Y, MAX), or enter exact dates manually.</li>
             <li><strong>Benchmark Target:</strong> Overlay fixed compound return targets (e.g. +5% p.a.) against fund performance.</li>
+            <li><strong>Sort Metrics:</strong> Click table headers (Fund Name, Returns, Volatility, Drawdown, Sharpe) to sort column values ascending, descending, or reset.</li>
             <li><strong>Export Analytics:</strong> Use the <em>Export Data</em> dropdown to export filtered dataset to CSV, Excel, or PNG chart images.</li>
           </ul>
         </div>
@@ -435,7 +444,7 @@
           <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
             <li><strong>Total Return:</strong> Overall percentage performance across the selected date window.</li>
             <li><strong>CAGR:</strong> Compound Annual Growth Rate over the selected duration.</li>
-            <li><strong>Ann. Volatility:</strong> Annualized standard deviation of daily returns representing risk/price fluctuation.</li>
+            <li><strong>Ann. Volatility:</strong> Annualised standard deviation of daily returns representing risk/price fluctuation.</li>
             <li><strong>Max Drawdown:</strong> The largest peak-to-trough decline over the period.</li>
             <li><strong>Sharpe Ratio (Rf=2%):</strong> Risk-adjusted return measure calculated above a 2.0% risk-free rate.</li>
           </ul>
@@ -473,6 +482,11 @@
     let minDateIdx = 0;
     let maxDateIdx = 0;
     let isDarkMode = false;
+    let fileImportCounter = 0;
+
+    // Sorter State
+    let currentSortCol = null;
+    let currentSortDir = 'none'; // 'none' | 'asc' | 'desc'
 
     // Custom Plugin to ensure exported image has a solid background
     const backgroundPlugin = {
@@ -490,13 +504,6 @@
     window.addEventListener('DOMContentLoaded', () => {
       initChart();
       updateViewToggleBtnUI();
-      
-      fetch('lifesight_fundprices.csv')
-        .then(res => { if (!res.ok) throw new Error(); return res.text(); })
-        .then(csvText => parseAndInitData(csvText))
-        .catch(() => {
-          document.getElementById('fileStatus').innerHTML = "📁 Drag & drop <strong>lifesight_fundprices.csv</strong> or ";
-        });
     });
 
     function toggleDarkMode() {
@@ -540,29 +547,36 @@
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropzone.style.borderColor = 'var(--border-color)';
-      if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files);
     });
 
     function handleFileSelect(event) {
-      if (event.target.files.length > 0) processFile(event.target.files[0]);
+      if (event.target.files.length > 0) processFiles(event.target.files);
     }
 
-    function processFile(file) {
-      document.getElementById('fileStatus').innerHTML = `Loaded: <strong>${file.name}</strong>`;
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: function(h) { return h ? h.replace(/^\ufeff/, '').trim() : ''; },
-        complete: function(results) { parseAndInitDataFromRows(results.data); }
+    function processFiles(files) {
+      const fileList = Array.from(files);
+      if (fileList.length === 1) {
+        document.getElementById('fileStatus').innerHTML = `Loaded: <strong>${fileList[0].name}</strong>`;
+      } else {
+        document.getElementById('fileStatus').innerHTML = `Loaded: <strong>${fileList.length} files</strong>`;
+      }
+
+      const filePromises = fileList.map(file => {
+        return new Promise((resolve) => {
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            transformHeader: function(h) { return h ? h.replace(/^\ufeff/, '').trim() : ''; },
+            complete: function(results) {
+              resolve({ fileName: file.name, data: results.data });
+            }
+          });
+        });
       });
-    }
 
-    function parseAndInitData(csvText) {
-      Papa.parse(csvText, {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: function(h) { return h ? h.replace(/^\ufeff/, '').trim() : ''; },
-        complete: function(results) { parseAndInitDataFromRows(results.data); }
+      Promise.all(filePromises).then(parsedFiles => {
+        processParsedFiles(parsedFiles);
       });
     }
 
@@ -601,40 +615,81 @@
       return parseDateStr(isoStr);
     }
 
-    function parseAndInitDataFromRows(rows) {
+    function processParsedFiles(parsedFiles) {
       fundMap = {};
       fundAdminMap = {};
       fundColorMap = {};
       allAdmins = new Set();
       const dateMap = new Map();
 
-      rows.forEach(row => {
-        const fundKey = Object.keys(row).find(k => k.replace(/^\ufeff/, '').trim().toLowerCase() === 'fund');
-        const dateKey = Object.keys(row).find(k => k.replace(/^\ufeff/, '').trim().toLowerCase() === 'date');
-        const priceKey = Object.keys(row).find(k => k.replace(/^\ufeff/, '').trim().toLowerCase() === 'unitprice');
-        const adminKey = Object.keys(row).find(k => k.replace(/^\ufeff/, '').trim().toLowerCase() === 'administrator');
-
-        const fund = fundKey && row[fundKey] ? row[fundKey].trim() : null;
-        const dateStr = dateKey && row[dateKey] ? row[dateKey].trim() : null;
-        const price = priceKey ? parseFloat(row[priceKey]) : NaN;
-        const admin = adminKey && row[adminKey] ? row[adminKey].trim() : 'LifeSight';
-
-        if (fund && dateStr && !isNaN(price)) {
-          if (!fundMap[fund]) fundMap[fund] = [];
-          fundAdminMap[fund] = admin;
-          allAdmins.add(admin);
-
-          const dateObj = parseDateStr(dateStr);
-          if (dateObj && !isNaN(dateObj.getTime())) {
-            fundMap[fund].push({ date: dateObj, dateStr: dateStr, price: price });
-            dateMap.set(dateObj.getTime(), dateObj);
-          }
+      parsedFiles.forEach(fileObj => {
+        let rows = fileObj.data;
+        if (!rows && fileObj.text) {
+          const parsed = Papa.parse(fileObj.text, {
+            header: true,
+            skipEmptyLines: true,
+            transformHeader: function(h) { return h ? h.replace(/^\ufeff/, '').trim() : ''; }
+          });
+          rows = parsed.data;
         }
+        if (!rows || !rows.length) return;
+
+        fileImportCounter++;
+        const fileNameLower = (fileObj.fileName || '').toLowerCase();
+
+        rows.forEach(row => {
+          const cleanRow = {};
+          Object.keys(row).forEach(k => {
+            if (k) cleanRow[k.replace(/^\ufeff/, '').trim()] = row[k];
+          });
+
+          // Resolve Flexible Column Names
+          const fund = cleanRow['Fund'] || cleanRow['Fund Name'] || cleanRow['FundCode'] || cleanRow['Fund Code'] || null;
+          const dateStr = cleanRow['Date'] || cleanRow['Unit Price Date'] || cleanRow['UnitPriceDate'] || null;
+          const rawPrice = cleanRow['UnitPrice'] || cleanRow['Unit Price'] || cleanRow['Price'] || null;
+          const price = rawPrice !== null ? parseFloat(rawPrice) : NaN;
+
+          // Default Administrator mapping logic
+          let admin = cleanRow['Administrator'] ? cleanRow['Administrator'].trim() : null;
+          if (!admin) {
+            if (fileNameLower.includes('unit-prices')) {
+              admin = 'LifeSight';
+            } else {
+              admin = `fund group ${fileImportCounter}`;
+            }
+          }
+
+          if (fund && dateStr && !isNaN(price)) {
+            const fundName = fund.trim();
+            if (!fundMap[fundName]) fundMap[fundName] = [];
+            fundAdminMap[fundName] = admin;
+            allAdmins.add(admin);
+
+            const dateObj = parseDateStr(dateStr);
+            if (dateObj && !isNaN(dateObj.getTime())) {
+              fundMap[fundName].push({ date: dateObj, dateStr: dateStr, price: price });
+              dateMap.set(dateObj.getTime(), dateObj);
+            }
+          }
+        });
       });
 
       const sortedFundNames = Object.keys(fundMap).sort();
       sortedFundNames.forEach((fund, idx) => {
         fundMap[fund].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        // Deduplicate entries with identical dates for the same fund
+        const uniqueData = [];
+        const seenDates = new Set();
+        fundMap[fund].forEach(item => {
+          const timeKey = item.date.getTime();
+          if (!seenDates.has(timeKey)) {
+            seenDates.add(timeKey);
+            uniqueData.push(item);
+          }
+        });
+        fundMap[fund] = uniqueData;
+
         fundColorMap[fund] = PALETTE[idx % PALETTE.length];
       });
 
@@ -647,14 +702,8 @@
         adminSelect.innerHTML += `<option value="${adm}">${adm}</option>`;
       });
 
-      const lifeSightOpt = Array.from(adminSelect.options).find(opt => opt.value.trim().toLowerCase() === 'lifesight');
-      if (lifeSightOpt) {
-        adminSelect.value = lifeSightOpt.value;
-      } else if (adminSelect.options.length > 1) {
-        adminSelect.value = adminSelect.options[1].value;
-      } else {
-        adminSelect.value = 'All';
-      }
+      // Default Admin dropdown to 'All' on load
+      adminSelect.value = 'All';
 
       const availableFunds = Object.keys(fundMap);
       const defaults = [
@@ -665,6 +714,10 @@
       selectedFunds.clear();
       defaults.forEach(f => { if (availableFunds.includes(f)) selectedFunds.add(f); });
       if (selectedFunds.size === 0 && availableFunds.length > 0) selectedFunds.add(availableFunds[0]);
+
+      // Reset sorter state on new data import
+      currentSortCol = null;
+      currentSortDir = 'none';
 
       // Ensure view mode is set to unit price chart on first data load
       currentViewMode = 'unit';
@@ -684,7 +737,7 @@
           responsive: true,
           maintainAspectRatio: false,
           animation: false,
-          interaction: { mode: 'index', intersect: false },
+          interaction: { mode: 'x', intersect: false },
           plugins: {
             legend: { 
               display: false,
@@ -696,7 +749,14 @@
               }
             },
             tooltip: {
+              filter: function(tooltipItem, index, tooltipItems) {
+                return tooltipItems.findIndex(t => t.datasetIndex === tooltipItem.datasetIndex) === index;
+              },
               callbacks: {
+                title: function(tooltipItems) {
+                  if (!tooltipItems.length) return '';
+                  return luxon.DateTime.fromMillis(tooltipItems[0].parsed.x).toFormat('d MMMM yyyy');
+                },
                 label: function(context) {
                   let label = context.dataset.label || '';
                   if (label) label += ': ';
@@ -858,6 +918,37 @@
       updateDashboard();
     }
 
+    /* Column Sorting Handler */
+    function handleSort(colKey) {
+      if (currentSortCol === colKey) {
+        if (currentSortDir === 'none') currentSortDir = 'asc';
+        else if (currentSortDir === 'asc') currentSortDir = 'desc';
+        else if (currentSortDir === 'desc') {
+          currentSortDir = 'none';
+          currentSortCol = null;
+        }
+      } else {
+        currentSortCol = colKey;
+        currentSortDir = 'asc';
+      }
+      updateDashboard();
+    }
+
+    function updateSortIcons() {
+      const sortableCols = ['name', 'totalReturn', 'cagr', 'volatility', 'maxDrawdown', 'sharpe'];
+      sortableCols.forEach(col => {
+        const iconEl = document.getElementById(`sort-icon-${col}`);
+        if (!iconEl) return;
+        if (col === currentSortCol) {
+          if (currentSortDir === 'asc') iconEl.innerText = '▲';
+          else if (currentSortDir === 'desc') iconEl.innerText = '▼';
+          else iconEl.innerText = '↕';
+        } else {
+          iconEl.innerText = '↕';
+        }
+      });
+    }
+
     function updateDashboard() {
       if (!chartInstance || allDates.length === 0) return;
 
@@ -865,7 +956,7 @@
       const endDate = allDates[maxDateIdx];
       const datasets = [];
       const legendItemsHtml = [];
-      const metricsData = [];
+      let metricsData = [];
 
       let globalMinY = Infinity;
       let globalMaxY = -Infinity;
@@ -959,6 +1050,23 @@
           sharpe: sharpe
         });
       });
+
+      // Apply Column Sorting if Active
+      if (currentSortCol && currentSortDir !== 'none') {
+        metricsData.sort((a, b) => {
+          let valA = a[currentSortCol];
+          let valB = b[currentSortCol];
+          if (typeof valA === 'string') {
+            return currentSortDir === 'asc' 
+              ? valA.localeCompare(valB) 
+              : valB.localeCompare(valA);
+          } else {
+            return currentSortDir === 'asc' ? valA - valB : valB - valA;
+          }
+        });
+      }
+
+      updateSortIcons();
 
       const bmSelect = document.getElementById('benchmarkSelect');
       const bmMode = bmSelect ? bmSelect.value : 'none';
@@ -1090,13 +1198,7 @@
     function resetToDefaultSelection() {
       selectedFunds.clear();
       const adminSelect = document.getElementById('adminSelect');
-      const lifeSightOpt = Array.from(adminSelect.options).find(opt => opt.value.trim().toLowerCase() === 'lifesight');
-      
-      if (lifeSightOpt) {
-        adminSelect.value = lifeSightOpt.value;
-      } else {
-        adminSelect.value = 'All';
-      }
+      adminSelect.value = 'All';
 
       ['LifeSight Equity - LSEQ', 'LifeSight Diversified Growth - LSDG', 'LifeSight Cash - LSCA'].forEach(f => {
         if (fundMap[f]) selectedFunds.add(f);
@@ -1144,7 +1246,6 @@
       link.click();
     }
 
-    // Consolidated Export Function (CSV and Excel)
     function exportData(format) {
       if (allDates.length === 0) {
         alert("No dataset loaded to export.");
