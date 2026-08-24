@@ -30,7 +30,7 @@ A privacy-focused, zero-setup toolkit designed to analyze unit price trajectorie
 
 ### 📈 Using the Fund Analytics Dashboard
 
-1. **Load Data:** Open in your browser the Dashboard HTML file `lifesight_fundprices.html` and drag your CSV file into the designated drop zone, or click **Browse Files**.
+1. **Load Data:** Open in your browser the Dashboard HTML file `lifesight_fundprices.html` and drag your CSV file into the designated drop zone ie `lifesight_fundprices.csv`, or click **Browse Files**.
 2. **Configure Display:** Toggle between **Unit Price (£)** or **Percent Change (%)** modes, and optionally select an annual target benchmark line.
 3. **Filter Funds:** Use the search bar, filter by Administrator, or click individual fund tiles to display or hide specific funds.
 4. **Evaluate Metrics:** Review the automatically generated table below the chart to compare CAGR, Volatility, Max Drawdown, and Sharpe Ratios.
@@ -40,7 +40,7 @@ A privacy-focused, zero-setup toolkit designed to analyze unit price trajectorie
 
 ### 🧩 Using the Fund Return Matrix
 
-1. **Load Data:** Open in your browser the Return Matrix HTML file `lifesight_fundprices_triangle.html`; Select Browse Files for `lifesight_fundprices_triangle.csv` or drag in files for a manual drop.
+1. **Load Data:** Open in your browser the Return Matrix HTML file `lifesight_fundprices_triangle.html` and drag your CSV file into the designated drop zone ie `lifesight_fundprices_triangle.csv`, or click **Browse Files**.
 2. **Select Fund:** Click on any individual fund tile to populate the triangular return matrix grid.
 3. **Set Parameters:** Adjust the horizontal axis (Purchase Dates) and vertical axis (Evaluation Dates) using the date pickers or range sliders.
 4. **Analyze Cells:** Hover over individual matrix cells to view the total months held, purchase price, evaluation price, and overall return percentage.
