@@ -112,6 +112,25 @@
       color: var(--accent-blue);
     }
 
+    /* Alert Banner */
+    .range-alert-box {
+      display: none;
+      padding: 8px 12px;
+      background-color: #fef2f2;
+      border: 1px solid #f87171;
+      color: #991b1b;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    body.dark-mode .range-alert-box {
+      background-color: #451a1a;
+      border-color: #991b1b;
+      color: #fca5a5;
+    }
+
     /* Information Modal Overlay */
     .modal-overlay {
       display: none;
@@ -330,14 +349,14 @@
         <div class="date-inputs">
           <div class="date-input-group">
             <label>Start Date</label>
-            <input type="date" id="startDateInput" onchange="onManualDateChange()">
+            <input type="date" id="startDateInput" onchange="onManualDateChange('start')">
           </div>
           <div class="date-input-group">
             <label>End Date</label>
-            <input type="date" id="endDateInput" onchange="onManualDateChange()">
+            <input type="date" id="endDateInput" onchange="onManualDateChange('end')">
           </div>
           <label class="lock-toggle-group">
-            <input type="checkbox" id="lockSpanToggle"> 🔒 Lock Span
+            <input type="checkbox" id="lockSpanToggle" onchange="hideRangeAlert()"> 🔒 Lock Span
           </label>
           <div class="date-input-group">
             <label>Benchmark Target</label>
@@ -358,6 +377,9 @@
             <button class="preset-btn" onclick="setPresetRange('MAX')">MAX</button>
           </div>
         </div>
+
+        <!-- Range Alert Info Box -->
+        <div id="rangeAlertBox" class="range-alert-box"></div>
 
         <!-- Range Slider -->
         <div class="slider-container">
@@ -477,7 +499,7 @@
       'LifeSight Diversified Growth - LSDG',
       'LifeSight Cash - LSCA'
     ]);
-    let currentViewMode = 'unit'; // Default view mode on initial load
+    let currentViewMode = 'percent'; // Default view mode on initial load
     let chartInstance = null;
     let minDateIdx = 0;
     let maxDateIdx = 0;
@@ -527,7 +549,7 @@
     }
 
     function toggleViewMode() {
-      currentViewMode = currentViewMode === 'unit' ? 'percent' : 'unit';
+      currentViewMode = currentViewMode === 'percent' ? 'percent' : 'unit';
       updateViewToggleBtnUI();
       updateDashboard();
     }
@@ -720,7 +742,7 @@
       currentSortDir = 'none';
 
       // Ensure view mode is set to unit price chart on first data load
-      currentViewMode = 'unit';
+      currentViewMode = 'percent';
       updateViewToggleBtnUI();
 
       renderFundGrid();
@@ -801,7 +823,21 @@
       updateDateInputsUI();
     }
 
+    function hideRangeAlert() {
+      const alertBox = document.getElementById('rangeAlertBox');
+      if (alertBox) alertBox.style.display = 'none';
+    }
+
+    function showRangeAlert(msg) {
+      const alertBox = document.getElementById('rangeAlertBox');
+      if (alertBox) {
+        alertBox.innerText = msg;
+        alertBox.style.display = 'block';
+      }
+    }
+
     function onSliderInput(changed) {
+      hideRangeAlert();
       let sliderMin = document.getElementById('sliderMin');
       let sliderMax = document.getElementById('sliderMax');
       let isLocked = document.getElementById('lockSpanToggle').checked;
@@ -860,45 +896,85 @@
       document.getElementById('endDateInput').value = formatDateISO(allDates[maxDateIdx]);
     }
 
-    function onManualDateChange() {
+    function onManualDateChange(source) {
+      hideRangeAlert();
       const startVal = document.getElementById('startDateInput').value;
       const endVal = document.getElementById('endDateInput').value;
-      if (!startVal || !endVal) return;
+      if (!startVal || !endVal || allDates.length === 0) return;
 
       const isLocked = document.getElementById('lockSpanToggle').checked;
-      const currentSpan = maxDateIdx - minDateIdx;
+      const newStartD = parseISODateLocal(startVal);
+      const newEndD = parseISODateLocal(endVal);
 
-      const startD = parseISODateLocal(startVal);
-      const endD = parseISODateLocal(endVal);
+      if (!isLocked) {
+        let newMinIdx = allDates.findIndex(d => d.getTime() >= newStartD.getTime());
+        if (newMinIdx === -1) newMinIdx = 0;
 
-      let newMinIdx = allDates.findIndex(d => d.getTime() >= startD.getTime());
-      if (newMinIdx === -1) newMinIdx = 0;
-
-      let newMaxIdx;
-      if (isLocked) {
-        newMaxIdx = newMinIdx + currentSpan;
-        if (newMaxIdx >= allDates.length) {
-          newMaxIdx = allDates.length - 1;
-          newMinIdx = newMaxIdx - currentSpan;
-        }
-      } else {
-        newMaxIdx = allDates.slice().reverse().findIndex(d => d.getTime() <= endD.getTime());
+        let newMaxIdx = allDates.slice().reverse().findIndex(d => d.getTime() <= newEndD.getTime());
         if (newMaxIdx === -1) newMaxIdx = allDates.length - 1;
         else newMaxIdx = (allDates.length - 1) - newMaxIdx;
-      }
 
-      if (newMinIdx < newMaxIdx) {
+        if (newMinIdx >= newMaxIdx) {
+          showRangeAlert("Action won't take place as Start Date must be before End Date.");
+          updateDateInputsUI();
+          return;
+        }
+
         minDateIdx = newMinIdx;
         maxDateIdx = newMaxIdx;
-        document.getElementById('sliderMin').value = minDateIdx;
-        document.getElementById('sliderMax').value = maxDateIdx;
-        updateSliderUI();
-        updateDateInputsUI();
-        updateDashboard();
+      } else {
+        const spanMs = allDates[maxDateIdx].getTime() - allDates[minDateIdx].getTime();
+
+        if (source === 'start') {
+          let targetEndMs = newStartD.getTime() + spanMs;
+          const minAvailableMs = allDates[0].getTime();
+          const maxAvailableMs = allDates[allDates.length - 1].getTime();
+
+          if (newStartD.getTime() < minAvailableMs || targetEndMs > maxAvailableMs) {
+            showRangeAlert("Action won't take place as this would cause an out of range issue. Recommend switching off Lock Span.");
+            updateDateInputsUI();
+            return;
+          }
+
+          let newMinIdx = allDates.findIndex(d => d.getTime() >= newStartD.getTime());
+          if (newMinIdx === -1) newMinIdx = 0;
+
+          let newMaxIdx = allDates.findIndex(d => d.getTime() >= targetEndMs);
+          if (newMaxIdx === -1) newMaxIdx = allDates.length - 1;
+
+          minDateIdx = newMinIdx;
+          maxDateIdx = newMaxIdx;
+        } else if (source === 'end') {
+          let targetStartMs = newEndD.getTime() - spanMs;
+          const minAvailableMs = allDates[0].getTime();
+          const maxAvailableMs = allDates[allDates.length - 1].getTime();
+
+          if (targetStartMs < minAvailableMs || newEndD.getTime() > maxAvailableMs) {
+            showRangeAlert("Action won't take place as this would cause an out of range issue. Recommend switching off Lock Span.");
+            updateDateInputsUI();
+            return;
+          }
+
+          let newMinIdx = allDates.findIndex(d => d.getTime() >= targetStartMs);
+          if (newMinIdx === -1) newMinIdx = 0;
+
+          let newMaxIdx = allDates.findIndex(d => d.getTime() >= newEndD.getTime());
+          if (newMaxIdx === -1) newMaxIdx = allDates.length - 1;
+
+          minDateIdx = newMinIdx;
+          maxDateIdx = newMaxIdx;
+        }
       }
+
+      document.getElementById('sliderMin').value = minDateIdx;
+      document.getElementById('sliderMax').value = maxDateIdx;
+      updateSliderUI();
+      updateDateInputsUI();
+      updateDashboard();
     }
 
     function setPresetRange(preset) {
+      hideRangeAlert();
       if (allDates.length === 0) return;
       const maxDate = allDates[allDates.length - 1];
       let targetStartDate = new Date(maxDate);
@@ -907,6 +983,8 @@
       else if (preset === '3Y') targetStartDate.setFullYear(maxDate.getFullYear() - 3);
       else if (preset === '5Y') targetStartDate.setFullYear(maxDate.getFullYear() - 5);
       else if (preset === 'MAX') targetStartDate = allDates[0];
+
+      targetStartDate.setDate(targetStartDate.getDate() + 1);
 
       let newMinIdx = allDates.findIndex(d => d.getTime() >= targetStartDate.getTime());
       if (newMinIdx === -1) newMinIdx = 0;
