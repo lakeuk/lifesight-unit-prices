@@ -78,7 +78,7 @@ LifeSight,101,LifeSight Equity - LSEQ,2016-08-31,1.2534
 LifeSight,101,LifeSight Equity - LSEQ,2016-09-01,1.2465
 ```
 
-Option 2 - (`unit-prices.csv`)   
+Option 2 - (`unit-prices.csv`) note: this is the layout provided by WTW LifeSight  
 Required headers (case-sensitive): `Fund Code`, `Fund Name`, `Unit Price Date`, `Currency code`, `Unit Price`
 
 ```csv
