@@ -291,10 +291,9 @@
     }
     .fund-tile { 
       padding: 6px 10px; 
-      background-color: var(--tile-inactive-bg); 
-      color: var(--tile-inactive-text); 
+      color: #1e293b; 
       border: 1px solid var(--border-color); 
-      border-left: 4px solid var(--border-color);
+      border-left: 5px solid var(--border-color);
       border-radius: 5px; 
       font-size: 0.75rem; 
       font-weight: 600; 
@@ -309,12 +308,14 @@
       word-break: break-word; 
       line-height: 1.25;
     }
-    .fund-tile:hover { filter: brightness(0.95); }
+    .fund-tile:hover { filter: brightness(0.92); }
     .fund-tile.selected { 
-      background-color: var(--card-bg); 
-      color: var(--text-main); 
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      box-shadow: 0 0 0 2px var(--accent-blue), 0 2px 4px rgba(0,0,0,0.12);
       font-weight: 700;
+    }
+
+    body.dark-mode .fund-tile {
+      color: #0f172a;
     }
 
     @media (max-width: 768px) {
@@ -512,6 +513,27 @@
       '#0891b2', '#db2777', '#059669', '#d97706', '#4f46e5'
     ];
 
+    // Up to 10 Distinct Pastel Tones for CSV Administrator Groupings
+    const ADMIN_PASTEL_PALETTE = [
+      '#bfdbfe', // Soft Pastel Blue
+      '#bbf7d0', // Soft Pastel Mint Green
+      '#e9d5ff', // Soft Pastel Lavender/Purple
+      '#fbcfe8', // Soft Pastel Pink
+      '#99f6e4', // Soft Pastel Teal
+      '#fed7aa', // Soft Pastel Peach
+      '#ddd6fe', // Soft Pastel Soft Violet
+      '#a7f3d0', // Soft Pastel Sage
+      '#fef08a', // Soft Pastel Light Yellow
+      '#f3e8ff'  // Soft Pastel Soft Magenta
+    ];
+
+    const DEFAULT_LIFESIGHT_FUNDS = new Set([
+      'LifeSight Equity - LSEQ',
+      'LifeSight Diversified Growth - LSDG',
+      'LifeSight Cash - LSCA',
+      'LifeSight Bonds - LSBO'
+    ]);
+
     // Factsheet URL Lookup Mapping
     const FACTSHEET_URLS = {
       // LifeSight Blended Funds
@@ -626,6 +648,7 @@
     let fundMap = {};       
     let fundAdminMap = {};  
     let fundColorMap = {};
+    let adminPastelColorMap = {};
     let allAdmins = new Set();
     let allDates = [];
     let selectedFunds = new Set([
@@ -774,6 +797,7 @@
       fundMap = {};
       fundAdminMap = {};
       fundColorMap = {};
+      adminPastelColorMap = {};
       allAdmins = new Set();
       const dateMap = new Map();
 
@@ -825,6 +849,12 @@
             }
           }
         });
+      });
+
+      // Map Pastel Colors to Non-LifeSight Administrators dynamically
+      const otherAdmins = Array.from(allAdmins).filter(a => a.toLowerCase() !== 'lifesight').sort();
+      otherAdmins.forEach((admin, idx) => {
+        adminPastelColorMap[admin] = ADMIN_PASTEL_PALETTE[idx % ADMIN_PASTEL_PALETTE.length];
       });
 
       const sortedFundNames = Object.keys(fundMap).sort();
@@ -1366,6 +1396,25 @@
       }).join('');
     }
 
+    function getFundTileBackground(fundName, admin) {
+      // 1. 4 Default LifeSight Funds: Yellow-Orange Pastel Tone
+      if (DEFAULT_LIFESIGHT_FUNDS.has(fundName)) {
+        return '#f3b21b'; 
+      }
+
+      // 2. Other LifeSight Funds: Slightly Different Yellow/Amber Tone
+      if (admin && admin.toLowerCase() === 'lifesight') {
+        return '#f5d27f'; 
+      }
+
+      // 3. Other CSV Administrator Groups: Dynamic Pastel Tone System (Up to 10 tones)
+      if (admin && adminPastelColorMap[admin]) {
+        return adminPastelColorMap[admin];
+      }
+
+      return 'var(--tile-inactive-bg)';
+    }
+
     function renderFundGrid() {
       const grid = document.getElementById('fundGrid');
       const funds = Object.keys(fundMap).sort();
@@ -1382,16 +1431,18 @@
         if (matchesAdmin && matchesSearch) {
           const isSelected = selectedFunds.has(fundName);
           const fundColor = fundColorMap[fundName] || '#2563eb';
+          const bgTone = getFundTileBackground(fundName, admin);
 
           const tile = document.createElement('div');
           tile.className = `fund-tile ${isSelected ? 'selected' : ''}`;
           tile.title = fundName;
           tile.innerText = fundName;
+          tile.style.backgroundColor = bgTone;
 
           if (isSelected) {
             tile.style.borderLeft = `5px solid ${fundColor}`;
           } else {
-            tile.style.borderLeft = `4px solid var(--border-color)`;
+            tile.style.borderLeft = `4px solid ${fundColor}`;
           }
 
           tile.onclick = () => {
