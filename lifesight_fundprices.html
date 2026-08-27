@@ -252,7 +252,28 @@
     .positive-val { color: #10b981; font-weight: 600; }
     .negative-val { color: #ef4444; font-weight: 600; }
 
-    /* Dynamic Fund Selection Section (Moved to Bottom) */
+    /* Factsheet Icon & Tooltip Styling */
+    .factsheet-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      background: var(--tile-inactive-bg);
+      border: 1px solid var(--border-color);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .factsheet-icon:hover {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      transform: translateY(-1px);
+    }
+
+    /* Dynamic Fund Selection Section */
     .fund-selector-section { display: flex; flex-direction: column; gap: 8px; background: var(--input-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); }
     .fund-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
     .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -391,7 +412,7 @@
       </div>
     </div>
 
-    <!-- Risk & Return Table (Moved to Middle) -->
+    <!-- Risk & Return Table -->
     <div class="metrics-section">
       <div class="metrics-header">📊 Selected Range Risk & Performance Analytics</div>
       <div class="table-wrapper">
@@ -399,6 +420,7 @@
           <thead>
             <tr>
               <th class="sortable" onclick="handleSort('name')">Fund Name <span id="sort-icon-name" class="sort-icon">↕</span></th>
+              <th></th>
               <th>Administrator</th>
               <th>Start Price</th>
               <th>End Price</th>
@@ -410,13 +432,13 @@
             </tr>
           </thead>
           <tbody id="metricsTableBody">
-            <tr><td colspan="9" style="text-align:center; color: var(--text-muted);">No dataset loaded</td></tr>
+            <tr><td colspan="10" style="text-align:center; color: var(--text-muted);">No dataset loaded</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Dynamic Fund Tile Selection Grid (Moved to Bottom) -->
+    <!-- Dynamic Fund Tile Selection Grid -->
     <div class="fund-selector-section">
       <div class="fund-toolbar">
         <div class="filter-group">
@@ -455,8 +477,9 @@
             <li><strong>Toggle View:</strong> Click the chart mode button to switch between <strong>Unit Price Chart</strong> and <strong>Percent Change Chart</strong>.</li>
             <li><strong>Select Funds:</strong> Filter funds by Administrator or Search term, then click fund tiles to toggle active display.</li>
             <li><strong>Adjust Timeframes:</strong> Drag the dual slider range, select preset ranges (1Y, 3Y, 5Y, MAX), or enter exact dates manually.</li>
+            <li><strong>Factsheet Links:</strong> Click the 📄 icon in the performance table to view the official fund factsheet PDF in a new window.</li>
             <li><strong>Benchmark Target:</strong> Overlay fixed compound return targets (e.g. +5% p.a.) against fund performance.</li>
-            <li><strong>Sort Metrics:</strong> Click table headers (Fund Name, Returns, Volatility, Drawdown, Sharpe) to sort column values ascending, descending, or reset.</li>
+            <li><strong>Sort Metrics:</strong> Click table headers (Fund Name, Returns, Volatility, Drawdown, Sharpe) to sort column values.</li>
             <li><strong>Export Analytics:</strong> Use the <em>Export Data</em> dropdown to export filtered dataset to CSV, Excel, or PNG chart images.</li>
           </ul>
         </div>
@@ -489,6 +512,117 @@
       '#0891b2', '#db2777', '#059669', '#d97706', '#4f46e5'
     ];
 
+    // Factsheet URL Lookup Mapping
+    const FACTSHEET_URLS = {
+      // LifeSight Blended Funds
+      'LSEQ': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/28956d63-ccd2-43d6-8f83-16b2b7d3bb74/FactSheet.pdf',
+      'LifeSight Equity': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/28956d63-ccd2-43d6-8f83-16b2b7d3bb74/FactSheet.pdf',
+      
+      'LSDG': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/3b184c9e-e6a5-4d91-8941-4a90e6e7f980/FactSheet.pdf',
+      'LifeSight Diversified Growth': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/3b184c9e-e6a5-4d91-8941-4a90e6e7f980/FactSheet.pdf',
+      
+      'LSBO': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/fee4f82c-4384-4f72-ad40-465c6116f6cc/FactSheet.pdf',
+      'LifeSight Bonds': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/fee4f82c-4384-4f72-ad40-465c6116f6cc/FactSheet.pdf',
+      
+      'LSCA': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/e539084a-822e-48ca-a467-0420bd64c4ad/FactSheet.pdf',
+      'LifeSight Cash': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/e539084a-822e-48ca-a467-0420bd64c4ad/FactSheet.pdf',
+
+      // Equities
+      'LSUK': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/d9b43a06-1d45-4ee6-a4fc-0782a597c12c/FactSheet.pdf',
+      'UK Equity': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/d9b43a06-1d45-4ee6-a4fc-0782a597c12c/FactSheet.pdf',
+      
+      'LSEE': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/4ddef377-3df0-4f10-9d77-74d292677e2f/FactSheet.pdf',
+      'Europe (ex UK) Equity': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/4ddef377-3df0-4f10-9d77-74d292677e2f/FactSheet.pdf',
+      
+      'LSNA': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/e3bf3c36-98a3-47e7-96b6-eb2cc43dd189/FactSheet.pdf',
+      'North America Equity': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/e3bf3c36-98a3-47e7-96b6-eb2cc43dd189/FactSheet.pdf',
+      
+      'LSAP': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/18b6d746-daec-4634-802f-cceaf1fc6401/FactSheet.pdf',
+      'Asia Pacific (ex Japan) Equity': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/18b6d746-daec-4634-802f-cceaf1fc6401/FactSheet.pdf',
+      
+      'LSJP': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/731fe18f-4897-4562-8fcf-b28bce3e0e40/FactSheet.pdf',
+      'Japan Equity': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/731fe18f-4897-4562-8fcf-b28bce3e0e40/FactSheet.pdf',
+      
+      'LSEM': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/fd0eefe9-b0e0-4b01-b488-a412a31c2d31/FactSheet.pdf',
+      'Emerging Markets Equity': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/fd0eefe9-b0e0-4b01-b488-a412a31c2d31/FactSheet.pdf',
+      
+      'LSGS': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/c804b173-7624-4458-be1e-c23361710403/FactSheet.pdf',
+      'Global Equity ESG Smart Beta': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/c804b173-7624-4458-be1e-c23361710403/FactSheet.pdf',
+      
+      'LSIS': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/61dc60ba-1b7c-4a6b-b580-0cc0333cbe94/FactSheet.pdf',
+      'Infrastructure Smart Beta Currency Hedged': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/61dc60ba-1b7c-4a6b-b580-0cc0333cbe94/FactSheet.pdf',
+      
+      'LWWH': 'https://fundcentres.lgim.com/srp/documents-id/d10c34f9-91fa-4579-ab66-b581f0eceaaf/FactSheet.pdf',
+      'Developed Market Equity - Hedged': 'https://fundcentres.lgim.com/srp/documents-id/d10c34f9-91fa-4579-ab66-b581f0eceaaf/FactSheet.pdf',
+      
+      'LWWU': 'https://fundcentres.lgim.com/srp/documents-id/c3d46027-81f2-41f9-9029-837d030eb3a5/FactSheet.pdf',
+      'Developed Market Equity - Unhedged': 'https://fundcentres.lgim.com/srp/documents-id/c3d46027-81f2-41f9-9029-837d030eb3a5/FactSheet.pdf',
+      
+      'LSET': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/457c7334-0eca-43cf-ab65-3d5879c8db53/FactSheet.pdf',
+      'FTSE4Good Developed Equity': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/457c7334-0eca-43cf-ab65-3d5879c8db53/FactSheet.pdf',
+      
+      'LSSE': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/0abf5c7d-6727-4e35-ad51-56bb8cfed0cb/FactSheet.pdf',
+      'Shariah Equity': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/0abf5c7d-6727-4e35-ad51-56bb8cfed0cb/FactSheet.pdf',
+      
+      'LSCL': 'https://fundcentres.lgim.com/srp/documents-id/fd1102e3-fb6f-43f3-ae75-0f4c1c6db782/FactSheet.pdf',
+      'Climate Focused Fund': 'https://fundcentres.lgim.com/srp/documents-id/fd1102e3-fb6f-43f3-ae75-0f4c1c6db782/FactSheet.pdf',
+
+      // Bonds
+      'LSCB': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/8d50cae3-1d64-4514-a0e0-765e2419a90d/FactSheet.pdf',
+      'UK Corporate Bond': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/8d50cae3-1d64-4514-a0e0-765e2419a90d/FactSheet.pdf',
+      
+      'LSGB': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/34e62af0-68c2-4166-b875-71245924adad/FactSheet.pdf',
+      'Emerging Market Government Bond': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/34e62af0-68c2-4166-b875-71245924adad/FactSheet.pdf',
+      
+      'LSGH': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/b629c357-35f8-41f2-8197-d6401a98619a/FactSheet.pdf',
+      'Global High Yield Bond': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/b629c357-35f8-41f2-8197-d6401a98619a/FactSheet.pdf',
+      
+      'LSAM': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/ae5df464-d0e0-4b8b-bb69-716afc16ebbd/FactSheet.pdf',
+      'Annuity Matching': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/ae5df464-d0e0-4b8b-bb69-716afc16ebbd/FactSheet.pdf',
+      
+      'LSIA': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/8362504f-62c5-47d4-836e-be591451a0f7/FactSheet.pdf',
+      'Inflation Linked Annuity Matching': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/8362504f-62c5-47d4-836e-be591451a0f7/FactSheet.pdf',
+      
+      'LSFI': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/d21b04cb-7320-40b7-b3d6-1335cb18bb79/FactSheet.pdf',
+      'UK Fixed Interest Gilts': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/d21b04cb-7320-40b7-b3d6-1335cb18bb79/FactSheet.pdf',
+      
+      'LSIL': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/29190b49-1dce-403c-80f7-f72fc7c4ca6d/FactSheet.pdf',
+      'UK Index Linked Gilts': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/29190b49-1dce-403c-80f7-f72fc7c4ca6d/FactSheet.pdf',
+
+      // Property
+      'LSGP': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/369a3cdc-943f-4f25-9f70-e66a8acdc99b/FactSheet.pdf',
+      'Global Property': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/369a3cdc-943f-4f25-9f70-e66a8acdc99b/FactSheet.pdf',
+      
+      'LSPR': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/1b17a940-ef61-46c5-ad99-d8b720558567/FactSheet.pdf',
+      'Property': 'https://literature-lgim.huguenots.co.uk/srp/documents-id/1b17a940-ef61-46c5-ad99-d8b720558567/FactSheet.pdf',
+
+      // AXA Funds - Equities
+      'LAME': 'https://fundcentres.lgim.com/srp/documents-id/920222f0-ed01-4d31-8a1f-de43d98b8412/FactSheet.pdf',
+      'MFS Global equity fund': 'https://fundcentres.lgim.com/srp/documents-id/920222f0-ed01-4d31-8a1f-de43d98b8412/FactSheet.pdf',
+      
+      'LAFO': 'https://fundcentres.lgim.com/srp/documents-id/0bdfca88-39c9-4857-aaac-2b5569f8f393/FactSheet.pdf',
+      'Framlington UK Selected Opportunities fund': 'https://fundcentres.lgim.com/srp/documents-id/0bdfca88-39c9-4857-aaac-2b5569f8f393/FactSheet.pdf',
+
+      // AXA Funds - Diversified Growth
+      'LADR': 'https://fundcentres.lgim.com/srp/documents-id/c34f526f-5634-4ff0-a9e7-96f6e017d6eb/FactSheet.pdf',
+      'Architas Diversified Real Estate fund': 'https://fundcentres.lgim.com/srp/documents-id/c34f526f-5634-4ff0-a9e7-96f6e017d6eb/FactSheet.pdf',
+      
+      'LAMA': 'https://fundcentres.lgim.com/srp/documents-id/e2b96b8d-6964-4ff6-a0d4-b2511f1bc813/FactSheet.pdf',
+      'Architas Multi Asset Passive Moderate fund': 'https://fundcentres.lgim.com/srp/documents-id/e2b96b8d-6964-4ff6-a0d4-b2511f1bc813/FactSheet.pdf'
+    };
+
+    function getFactsheetUrl(fundName) {
+      if (!fundName) return null;
+      if (FACTSHEET_URLS[fundName]) return FACTSHEET_URLS[fundName];
+      
+      const parts = fundName.split(' - ');
+      for (let part of parts) {
+        let trimmed = part.trim();
+        if (FACTSHEET_URLS[trimmed]) return FACTSHEET_URLS[trimmed];
+      }
+      return null;
+    }
+
     let fundMap = {};       
     let fundAdminMap = {};  
     let fundColorMap = {};
@@ -497,9 +631,10 @@
     let selectedFunds = new Set([
       'LifeSight Equity - LSEQ',
       'LifeSight Diversified Growth - LSDG',
-      'LifeSight Cash - LSCA'
+      'LifeSight Cash - LSCA',
+      'LifeSight Bonds - LSBO'
     ]);
-    let currentViewMode = 'percent'; // Default view mode on initial load
+    let currentViewMode = 'percent';
     let chartInstance = null;
     let minDateIdx = 0;
     let maxDateIdx = 0;
@@ -508,7 +643,7 @@
 
     // Sorter State
     let currentSortCol = null;
-    let currentSortDir = 'none'; // 'none' | 'asc' | 'desc'
+    let currentSortDir = 'none';
 
     // Custom Plugin to ensure exported image has a solid background
     const backgroundPlugin = {
@@ -613,11 +748,9 @@
         const p2 = parseInt(parts[2], 10);
 
         if (!isNaN(p0) && !isNaN(p1) && !isNaN(p2)) {
-          // YYYY-MM-DD or YYYY/MM/DD
           if (parts[0].length === 4) {
             return new Date(p0, p1 - 1, p2);
           }
-          // DD/MM/YYYY or DD-MM-YYYY
           if (parts[2].length === 4) {
             return new Date(p2, p1 - 1, p0);
           }
@@ -665,13 +798,11 @@
             if (k) cleanRow[k.replace(/^\ufeff/, '').trim()] = row[k];
           });
 
-          // Resolve Flexible Column Names
           const fund = cleanRow['Fund'] || cleanRow['Fund Name'] || cleanRow['FundCode'] || cleanRow['Fund Code'] || null;
           const dateStr = cleanRow['Date'] || cleanRow['Unit Price Date'] || cleanRow['UnitPriceDate'] || null;
           const rawPrice = cleanRow['UnitPrice'] || cleanRow['Unit Price'] || cleanRow['Price'] || null;
           const price = rawPrice !== null ? parseFloat(rawPrice) : NaN;
 
-          // Default Administrator mapping logic
           let admin = cleanRow['Administrator'] ? cleanRow['Administrator'].trim() : null;
           if (!admin) {
             if (fileNameLower.includes('unit-prices')) {
@@ -700,7 +831,6 @@
       sortedFundNames.forEach((fund, idx) => {
         fundMap[fund].sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        // Deduplicate entries with identical dates for the same fund
         const uniqueData = [];
         const seenDates = new Set();
         fundMap[fund].forEach(item => {
@@ -724,24 +854,22 @@
         adminSelect.innerHTML += `<option value="${adm}">${adm}</option>`;
       });
 
-      // Default Admin dropdown to 'All' on load
       adminSelect.value = 'All';
 
       const availableFunds = Object.keys(fundMap);
       const defaults = [
         'LifeSight Equity - LSEQ',
         'LifeSight Diversified Growth - LSDG',
-        'LifeSight Cash - LSCA'
+        'LifeSight Cash - LSCA',
+        'LifeSight Bonds - LSBO'
       ];
       selectedFunds.clear();
       defaults.forEach(f => { if (availableFunds.includes(f)) selectedFunds.add(f); });
       if (selectedFunds.size === 0 && availableFunds.length > 0) selectedFunds.add(availableFunds[0]);
 
-      // Reset sorter state on new data import
       currentSortCol = null;
       currentSortDir = 'none';
 
-      // Ensure view mode is set to unit price chart on first data load
       currentViewMode = 'percent';
       updateViewToggleBtnUI();
 
@@ -1125,7 +1253,8 @@
           cagr: cagr,
           volatility: annVol,
           maxDrawdown: maxDrawdown * 100,
-          sharpe: sharpe
+          sharpe: sharpe,
+          factsheetUrl: getFactsheetUrl(fundName)
         });
       });
 
@@ -1208,16 +1337,22 @@
     function renderMetricsTable(metrics) {
       const tbody = document.getElementById('metricsTableBody');
       if (metrics.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color: var(--text-muted);">No funds selected</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color: var(--text-muted);">No funds selected</td></tr>';
         return;
       }
 
       tbody.innerHTML = metrics.map(m => {
         const retClass = m.totalReturn >= 0 ? 'positive-val' : 'negative-val';
         const cagrClass = m.cagr >= 0 ? 'positive-val' : 'negative-val';
+        
+        const factsheetIcon = m.factsheetUrl 
+          ? `<a href="${m.factsheetUrl}" target="_blank" class="factsheet-icon" title="Open Factsheet PDF in new window">📄</a>`
+          : `<span style="color: var(--text-muted); font-size: 0.75rem;" title="Factsheet URL unavailable">—</span>`;
+
         return `
           <tr>
             <td><strong>${m.name}</strong></td>
+            <td style="text-align: center;">${factsheetIcon}</td>
             <td><span style="font-size: 0.75rem; font-weight: 600; padding: 2px 5px; background:var(--border-color); border-radius:3px;">${m.admin}</span></td>
             <td>£${m.startPrice.toFixed(4)}</td>
             <td>£${m.endPrice.toFixed(4)}</td>
@@ -1278,7 +1413,7 @@
       const adminSelect = document.getElementById('adminSelect');
       adminSelect.value = 'All';
 
-      ['LifeSight Equity - LSEQ', 'LifeSight Diversified Growth - LSDG', 'LifeSight Cash - LSCA'].forEach(f => {
+      ['LifeSight Equity - LSEQ', 'LifeSight Diversified Growth - LSDG', 'LifeSight Cash - LSCA', 'LifeSight Bonds - LSBO'].forEach(f => {
         if (fundMap[f]) selectedFunds.add(f);
       });
       renderFundGrid();
