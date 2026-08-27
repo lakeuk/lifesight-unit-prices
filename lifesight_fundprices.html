@@ -1417,13 +1417,42 @@
 
     function renderFundGrid() {
       const grid = document.getElementById('fundGrid');
-      const funds = Object.keys(fundMap).sort();
       grid.innerHTML = '';
 
       const adminFilter = document.getElementById('adminSelect').value;
       const searchQuery = document.getElementById('searchInput').value.toLowerCase();
 
-      funds.forEach(fundName => {
+      // Group funds by administrator
+      const adminGroups = {};
+      Object.keys(fundMap).forEach(fundName => {
+        const admin = fundAdminMap[fundName] || 'LifeSight';
+        if (!adminGroups[admin]) {
+          adminGroups[admin] = [];
+        }
+        adminGroups[admin].push(fundName);
+      });
+
+      // Sort funds within each group alphabetically
+      Object.keys(adminGroups).forEach(admin => {
+        adminGroups[admin].sort((a, b) => a.localeCompare(b));
+      });
+
+      // Order Administrator groups with LifeSight first, then all remaining alphabetically
+      const sortedAdmins = Object.keys(adminGroups).sort((a, b) => {
+        if (a.toLowerCase() === 'lifesight') return -1;
+        if (b.toLowerCase() === 'lifesight') return 1;
+        return a.localeCompare(b);
+      });
+
+      // Flatten ordered funds
+      const orderedFunds = [];
+      sortedAdmins.forEach(admin => {
+        adminGroups[admin].forEach(fundName => {
+          orderedFunds.push(fundName);
+        });
+      });
+
+      orderedFunds.forEach(fundName => {
         const admin = fundAdminMap[fundName] || 'LifeSight';
         const matchesAdmin = (adminFilter === 'All' || admin.trim().toLowerCase() === adminFilter.trim().toLowerCase());
         const matchesSearch = fundName.toLowerCase().includes(searchQuery);
