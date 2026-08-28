@@ -191,7 +191,7 @@
     #matrixCellTooltip .tooltip-val { font-weight: 700; }
 
     /* Controls & Sliders Layout */
-    .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; }
+    .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; }
     .axis-control-card { display: flex; flex-direction: column; gap: 8px; }
     .axis-title { font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
 
@@ -275,7 +275,7 @@
       </table>
     </div>
 
-    <!-- Dual Axis Date Range Controls -->
+    <!-- Controls Grid including Date Ranges and Inflation Slider -->
     <div class="controls-grid">
       <!-- Axis X: Purchase Date Range -->
       <div class="axis-control-card">
@@ -318,6 +318,20 @@
           <input type="range" id="ySliderMax" class="range-input" oninput="onSliderInput('y', 'max')">
         </div>
       </div>
+
+      <!-- Inflation Rate Slider Control -->
+      <div class="axis-control-card">
+        <div class="axis-title">
+          <span>Inflation Rate Adjustment 🎈</span>
+          <span id="inflationValDisplay" style="color: var(--accent-blue); font-weight: 700;">0% (Nominal)</span>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px;">
+          Adjusts color grading for real returns over holding duration
+        </div>
+        <div class="slider-container" style="margin-top: 10px;">
+          <input type="range" id="inflationSlider" min="0" max="6" step="1" value="0" style="width: 100%; cursor: pointer;" oninput="onInflationChange(this.value)">
+        </div>
+      </div>
     </div>
 
     <!-- Synchronized / Master Lock Option Bar -->
@@ -353,8 +367,9 @@
             <li><strong>Load CSV dataset:</strong> Drag and drop the CSV file or click the browse button to select it.</li>
             <li><strong>Select a Fund:</strong> Choose a single fund tile at the bottom to load its return matrix.</li>
             <li><strong>Adjust Time Ranges:</strong> Use the dual sliders or month pickers to adjust Purchase (Horizontal) and Evaluation (Vertical) date spans.</li>
+            <li><strong>Inflation Adjustment:</strong> Move the Inflation Rate slider (0% to 6%) to see real returns reflected in the color grading.</li>
             <li><strong>Lock & Synchronize:</strong> Lock window spans or check <em>Synchronize both axes</em> to shift time frames simultaneously.</li>
-            <li><strong>Hover for Details:</strong> Hover over matrix cells to view starting/ending prices, total return %, and holding duration.</li>
+            <li><strong>Hover for Details:</strong> Hover over matrix cells to view starting/ending prices, nominal vs. real returns, and holding duration.</li>
             <li><strong>Export Data:</strong> Click <em>Export Matrix</em> to download the current grid as CSV, Excel, or a high-res PNG image.</li>
           </ul>
         </div>
@@ -380,6 +395,7 @@
     let allDates = [];      
     let selectedFund = null;
     let isDarkMode = false;
+    let annualInflationRate = 0.00; // Global inflation rate decimal
 
     // Axis Range Indices
     let xMinIdx = 0, xMaxIdx = 0;
@@ -576,6 +592,12 @@
       document.getElementById(`${axis}EndMonth`).value = formatYearMonth(allDates[maxIdx]);
     }
 
+    function onInflationChange(val) {
+      annualInflationRate = parseFloat(val) / 100;
+      document.getElementById('inflationValDisplay').innerText = val === '0' ? '0% (Nominal)' : `${val}% Annual Inflation`;
+      renderMatrix();
+    }
+
     function onSyncLockToggleChange() {
       const isSyncLocked = document.getElementById('syncLockToggle').checked;
       if (isSyncLocked) {
@@ -760,18 +782,33 @@
           if (xTime >= yTime || !xPrice || !yPrice) {
             tr.innerHTML += '<td style="background-color: transparent;"></td>';
           } else {
-            const pct = ((yPrice - xPrice) / xPrice) * 100;
-            const style = getCellColor(pct);
+            // Nominal cumulative return
+            const nominalPct = ((yPrice - xPrice) / xPrice) * 100;
+            
+            // Holding period in years
+            const totalMonths = (yD.getFullYear() - xD.getFullYear()) * 12 + (yD.getMonth() - xD.getMonth());
+            const years = totalMonths / 12;
+
+            // Inflation-adjusted real return
+            let realPct = nominalPct;
+            if (annualInflationRate > 0) {
+              const nominalFactor = 1 + (nominalPct / 100);
+              const inflationFactor = Math.pow(1 + annualInflationRate, years);
+              realPct = ((nominalFactor / inflationFactor) - 1) * 100;
+            }
+
+            // Cell background style driven by real return value
+            const style = getCellColor(realPct);
             const durationStr = calculateDuration(xD, yD);
 
             const td = document.createElement('td');
             td.className = 'matrix-cell';
             td.style.backgroundColor = style.bg;
             td.style.color = style.text;
-            td.innerText = `${pct.toFixed(1)}%`;
+            td.innerText = `${nominalPct.toFixed(1)}%`;
 
-            // Hover Tooltip Events
-            td.onmouseenter = (e) => showCellTooltip(e, xD, yD, xPrice, yPrice, pct, durationStr);
+            // Hover Tooltip Events displaying nominal and real figures
+            td.onmouseenter = (e) => showCellTooltip(e, xD, yD, xPrice, yPrice, nominalPct, realPct, durationStr);
             td.onmousemove = (e) => moveCellTooltip(e);
             td.onmouseleave = () => hideCellTooltip();
 
@@ -786,7 +823,7 @@
     /* Dynamic Tooltip Handler Functions */
     const tooltip = document.getElementById('matrixCellTooltip');
 
-    function showCellTooltip(e, xD, yD, xPrice, yPrice, pct, durationStr) {
+    function showCellTooltip(e, xD, yD, xPrice, yPrice, nominalPct, realPct, durationStr) {
       tooltip.innerHTML = `
         <div class="tooltip-title">${selectedFund}</div>
         <div class="tooltip-row"><span class="tooltip-label">Buy Month:</span><span class="tooltip-val">${formatMMMYYYY(xD)}</span></div>
@@ -794,7 +831,8 @@
         <div class="tooltip-row"><span class="tooltip-label">Starting Price:</span><span class="tooltip-val">£${xPrice.toFixed(4)}</span></div>
         <div class="tooltip-row"><span class="tooltip-label">Ending Price:</span><span class="tooltip-val">£${yPrice.toFixed(4)}</span></div>
         <div class="tooltip-row"><span class="tooltip-label">Holding Duration:</span><span class="tooltip-val">${durationStr}</span></div>
-        <div class="tooltip-row"><span class="tooltip-label">Total Return:</span><span class="tooltip-val" style="color: ${pct >= 0 ? '#10b981' : '#ef4444'};">${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%</span></div>
+        <div class="tooltip-row"><span class="tooltip-label">Nominal Return:</span><span class="tooltip-val" style="color: ${nominalPct >= 0 ? '#10b981' : '#ef4444'};">${nominalPct >= 0 ? '+' : ''}${nominalPct.toFixed(2)}%</span></div>
+        <div class="tooltip-row"><span class="tooltip-label">Real Return (${(annualInflationRate * 100).toFixed(0)}% Inf.):</span><span class="tooltip-val" style="color: ${realPct >= 0 ? '#10b981' : '#ef4444'};">${realPct >= 0 ? '+' : ''}${realPct.toFixed(2)}%</span></div>
       `;
       tooltip.style.display = 'block';
       moveCellTooltip(e);
