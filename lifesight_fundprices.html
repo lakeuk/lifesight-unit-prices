@@ -189,9 +189,10 @@
 
     .lock-toggle-group { display: flex; align-items: center; gap: 5px; padding-bottom: 4px; font-size: 0.8rem; font-weight: 600; color: var(--text-main); cursor: pointer; user-select: none; }
 
-    .preset-row { display: flex; gap: 4px; }
+    .preset-row { display: flex; align-items: center; gap: 4px; }
     .preset-btn { padding: 4px 8px; font-size: 0.75rem; background: var(--tile-inactive-bg); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; font-weight: 600; color: var(--text-muted); }
     .preset-btn:hover { opacity: 0.8; }
+    .preset-separator { width: 1px; height: 18px; background-color: var(--border-color); margin: 0 4px; }
 
     /* Range Slider */
     .slider-container { position: relative; height: 26px; display: flex; align-items: center; width: 100%; margin-top: 2px; }
@@ -393,6 +394,10 @@
             </select>
           </div>
           <div class="preset-row">
+            <button class="preset-btn" onclick="setPresetRange('1M')">1M</button>
+            <button class="preset-btn" onclick="setPresetRange('3M')">3M</button>
+            <button class="preset-btn" onclick="setPresetRange('6M')">6M</button>
+            <div class="preset-separator"></div>
             <button class="preset-btn" onclick="setPresetRange('1Y')">1Y</button>
             <button class="preset-btn" onclick="setPresetRange('3Y')">3Y</button>
             <button class="preset-btn" onclick="setPresetRange('5Y')">5Y</button>
@@ -419,21 +424,21 @@
       <div class="table-wrapper">
         <table class="metrics-table">
           <thead>
-            <tr>
+            <tr id="metricsTableHeaderRow">
               <th class="sortable" onclick="handleSort('name')">Fund Name <span id="sort-icon-name" class="sort-icon">↕</span></th>
               <th></th>
               <th>Administrator</th>
               <th>Start Price</th>
               <th>End Price</th>
               <th class="sortable" onclick="handleSort('totalReturn')" title="The overall percentage gain or loss of the fund across the entire selected date range.">Total Return <span id="sort-icon-totalReturn" class="sort-icon">↕</span></th>
-              <th class="sortable" onclick="handleSort('cagr')" title="Compound Annual Growth Rate: The average annualised rate of return over the selected timeframe.">Ann. Return (CAGR) <span id="sort-icon-cagr" class="sort-icon">↕</span></th>
+              <th id="th-cagr" class="sortable" onclick="handleSort('cagr')" title="Compound Annual Growth Rate: The average annualised rate of return over the selected timeframe.">Ann. Return (CAGR) <span id="sort-icon-cagr" class="sort-icon">↕</span></th>
               <th class="sortable" onclick="handleSort('volatility')" title="Annualised Volatility: A measure of price fluctuation and risk; higher percentages mean larger price swings.">Ann. Volatility <span id="sort-icon-volatility" class="sort-icon">↕</span></th>
               <th class="sortable" onclick="handleSort('maxDrawdown')" title="Maximum Drawdown: The largest percentage drop from peak to trough, highlighting worst-case downside risk.">Max Drawdown <span id="sort-icon-maxDrawdown" class="sort-icon">↕</span></th>
               <th class="sortable" onclick="handleSort('sharpe')" title="Sharpe Ratio (R_f=2%): Measures return generated relative to risk taken above a 2% baseline rate. Higher is better.">Sharpe (R_f=2%) <span id="sort-icon-sharpe" class="sort-icon">↕</span></th>
             </tr>
           </thead>
           <tbody id="metricsTableBody">
-            <tr><td colspan="10" style="text-align:center; color: var(--text-muted);">No dataset loaded</td></tr>
+            <tr><td id="emptyTableMessage" colspan="10" style="text-align:center; color: var(--text-muted);">No dataset loaded</td></tr>
           </tbody>
         </table>
       </div>
@@ -477,7 +482,7 @@
             <li><strong>Load Data:</strong> Drag & drop or select multiple <code>.csv</code> files in a batch to compare funds across datasets.</li>
             <li><strong>Toggle View:</strong> Click the chart mode button to switch between <strong>Unit Price Chart</strong> and <strong>Percent Change Chart</strong>.</li>
             <li><strong>Select Funds:</strong> Filter funds by Administrator or Search term, then click fund tiles to toggle active display.</li>
-            <li><strong>Adjust Timeframes:</strong> Drag the dual slider range, select preset ranges (1Y, 3Y, 5Y, MAX), or enter exact dates manually.</li>
+            <li><strong>Adjust Timeframes:</strong> Drag the dual slider range, select preset ranges (1M, 3M, 6M, 1Y, 3Y, 5Y, MAX), or enter exact dates manually.</li>
             <li><strong>Factsheet Links:</strong> Click the 📄 icon in the performance table to view the official fund factsheet PDF in a new window.</li>
             <li><strong>Benchmark Target:</strong> Overlay fixed compound return targets (e.g. +5% p.a.) against fund performance.</li>
             <li><strong>Sort Metrics:</strong> Click table headers (Fund Name, Returns, Volatility, Drawdown, Sharpe) to sort column values.</li>
@@ -489,7 +494,7 @@
           <div class="modal-section-title">Risk & Performance Metrics Definitions</div>
           <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
             <li><strong>Total Return:</strong> Overall percentage performance across the selected date window.</li>
-            <li><strong>CAGR:</strong> Compound Annual Growth Rate over the selected duration.</li>
+            <li><strong>CAGR:</strong> Compound Annual Growth Rate over the selected duration (calculated for date ranges >= 1 Year).</li>
             <li><strong>Ann. Volatility:</strong> Annualised standard deviation of daily returns representing risk/price fluctuation.</li>
             <li><strong>Max Drawdown:</strong> The largest peak-to-trough decline over the period.</li>
             <li><strong>Sharpe Ratio (Rf=2%):</strong> Risk-adjusted return measure calculated above a 2.0% risk-free rate.</li>
@@ -1134,21 +1139,45 @@
     function setPresetRange(preset) {
       hideRangeAlert();
       if (allDates.length === 0) return;
-      const maxDate = allDates[allDates.length - 1];
-      let targetStartDate = new Date(maxDate);
 
-      if (preset === '1Y') targetStartDate.setFullYear(maxDate.getFullYear() - 1);
-      else if (preset === '3Y') targetStartDate.setFullYear(maxDate.getFullYear() - 3);
-      else if (preset === '5Y') targetStartDate.setFullYear(maxDate.getFullYear() - 5);
-      else if (preset === 'MAX') targetStartDate = allDates[0];
+      const isLocked = document.getElementById('lockSpanToggle').checked;
+      let referenceEndDate = isLocked ? allDates[maxDateIdx] : allDates[allDates.length - 1];
 
-      targetStartDate.setDate(targetStartDate.getDate() + 1);
+      let targetStartDate = new Date(referenceEndDate);
+
+      if (preset === '1M') targetStartDate.setMonth(targetStartDate.getMonth() - 1);
+      else if (preset === '3M') targetStartDate.setMonth(targetStartDate.getMonth() - 3);
+      else if (preset === '6M') targetStartDate.setMonth(targetStartDate.getMonth() - 6);
+      else if (preset === '1Y') targetStartDate.setFullYear(targetStartDate.getFullYear() - 1);
+      else if (preset === '3Y') targetStartDate.setFullYear(targetStartDate.getFullYear() - 3);
+      else if (preset === '5Y') targetStartDate.setFullYear(targetStartDate.getFullYear() - 5);
+      else if (preset === 'MAX') {
+        // if (isLocked) {
+        //   showRangeAlert("Action won't take place as MAX exceeds Lock Span boundaries. Turn off Lock Span first.");
+        //   return;
+        // }
+        targetStartDate = new Date(allDates[0]);
+      }
+
+      if (preset !== 'MAX') {
+        targetStartDate.setDate(targetStartDate.getDate() + 1);
+      }
+
+      if (isLocked) {
+        const minAvailableMs = allDates[0].getTime();
+        if (targetStartDate.getTime() < minAvailableMs) {
+          showRangeAlert("Action won't take place as this preset date exceeds data range bounds. Turn off Lock Span to expand range.");
+          return;
+        }
+      }
 
       let newMinIdx = allDates.findIndex(d => d.getTime() >= targetStartDate.getTime());
       if (newMinIdx === -1) newMinIdx = 0;
 
       minDateIdx = newMinIdx;
-      maxDateIdx = allDates.length - 1;
+      if (!isLocked) {
+        maxDateIdx = allDates.length - 1;
+      }
 
       setupSlider();
       updateDashboard();
@@ -1198,6 +1227,14 @@
       let globalMaxY = -Infinity;
 
       const daysSpan = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+      const isUnderOneYear = daysSpan < 360;
+
+      // Dynamically hide/show CAGR Column Header
+      const thCagr = document.getElementById('th-cagr');
+      if (thCagr) {
+        thCagr.style.display = isUnderOneYear ? 'none' : '';
+      }
+
       let timeUnit = 'year';
       let stepSize = 1;
       let displayFormat = 'yyyy';
@@ -1290,6 +1327,10 @@
 
       // Apply Column Sorting if Active
       if (currentSortCol && currentSortDir !== 'none') {
+        if (currentSortCol === 'cagr' && isUnderOneYear) {
+          // Fall back to total return sorting if CAGR is hidden
+          currentSortCol = 'totalReturn';
+        }
         metricsData.sort((a, b) => {
           let valA = a[currentSortCol];
           let valB = b[currentSortCol];
@@ -1361,13 +1402,15 @@
       chartInstance.data.datasets = datasets;
       chartInstance.update();
 
-      renderMetricsTable(metricsData);
+      renderMetricsTable(metricsData, isUnderOneYear);
     }
 
-    function renderMetricsTable(metrics) {
+    function renderMetricsTable(metrics, isUnderOneYear) {
       const tbody = document.getElementById('metricsTableBody');
+      const colspanVal = isUnderOneYear ? 9 : 10;
+      
       if (metrics.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color: var(--text-muted);">No funds selected</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="${colspanVal}" style="text-align:center; color: var(--text-muted);">No funds selected</td></tr>`;
         return;
       }
 
@@ -1379,6 +1422,8 @@
           ? `<a href="${m.factsheetUrl}" target="_blank" class="factsheet-icon" title="Open Factsheet PDF in new window">📄</a>`
           : `<span style="color: var(--text-muted); font-size: 0.75rem;" title="Factsheet URL unavailable">—</span>`;
 
+        const cagrCell = isUnderOneYear ? '' : `<td class="${cagrClass}">${m.cagr >= 0 ? '+' : ''}${m.cagr.toFixed(1)}%</td>`;
+
         return `
           <tr>
             <td><strong>${m.name}</strong></td>
@@ -1387,7 +1432,7 @@
             <td>£${m.startPrice.toFixed(4)}</td>
             <td>£${m.endPrice.toFixed(4)}</td>
             <td class="${retClass}">${m.totalReturn >= 0 ? '+' : ''}${m.totalReturn.toFixed(1)}%</td>
-            <td class="${cagrClass}">${m.cagr >= 0 ? '+' : ''}${m.cagr.toFixed(1)}%</td>
+            ${cagrCell}
             <td>${m.volatility.toFixed(1)}%</td>
             <td class="negative-val">-${m.maxDrawdown.toFixed(1)}%</td>
             <td>${m.sharpe.toFixed(2)}</td>
