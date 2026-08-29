@@ -494,6 +494,10 @@
         <div class="modal-disclaimer">
           <strong>⚠️ Disclaimer:</strong> Data points represent fund prices at a single point in the month and do not reflect the exact day of the month a member's contribution is executed by the administrator.
         </div>
+
+        <div style="font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 8px;">
+          Provided by <strong>Dave Whitehead</strong>. Updates available at: <a href="https://github.com/lakeuk/lifesight-unit-prices" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">https://github.com/lakeuk/lifesight-unit-prices</a>
+        </div>
       </div>
     </div>
   </div>
@@ -575,8 +579,23 @@
           <li><strong>Market Events:</strong> Cells with a gold dot in the top-left indicate key market events occurred during the start or end month.</li>
           <li><strong>Hovering:</strong> Hover over any cell to see monetary growth (£1,000 baseline), holding duration, real inflation returns, and market event context.</li>
         </ol>
+          <div style="font-weight: 700; font-size: 1rem; color: var(--accent-blue);">🖱️ How to Use the App</div>
+          <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
+            <li><strong>Load CSV dataset:</strong> Drag and drop the CSV file or click the browse button to select it.</li>
+            <li><strong>Select a Fund:</strong> Choose a single fund tile at the bottom to load its return matrix.</li>
+            <li><strong>Display Mode:</strong> Switch between percentage returns (%) or growth of a £1,000 investment (£).</li>
+            <li><strong>Preset Timeframes:</strong> Click 1Y, 3Y, or 5Y for instant date range adjustments.</li>
+            <li><strong>Inflation Adjustment:</strong> Move the Inflation Rate slider to recalculate real returns against purchasing power.</li>
+          </ul>
+        </div>
+
+
         <div class="modal-disclaimer" style="margin-top: 10px;">
           <strong>⚠️ Disclaimer:</strong> Data points represent fund prices at a single point in the month and do not reflect the exact day of the month a member's contribution is executed by the administrator.
+        </div>
+
+        <div style="font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 8px;">
+          Provided by <strong>Dave Whitehead</strong>. Updates available at: <a href="https://github.com/lakeuk/lifesight-unit-prices" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">https://github.com/lakeuk/lifesight-unit-prices</a>
         </div>
       `;
       modal.classList.add('active');
