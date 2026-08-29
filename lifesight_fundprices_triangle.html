@@ -27,6 +27,8 @@
       --grid-header-bg: #e2e8f0;
       --tooltip-bg: #0f172a;
       --tooltip-text: #f8fafc;
+      --crosshair-color: #2563eb;
+      --event-dot-color: #f59e0b;
     }
 
     body.dark-mode {
@@ -43,6 +45,8 @@
       --grid-header-bg: #334155;
       --tooltip-bg: #1e293b;
       --tooltip-text: #f8fafc;
+      --crosshair-color: #3b82f6;
+      --event-dot-color: #fbbf24;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -53,7 +57,7 @@
 
     /* Top Action Bar */
     .top-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
-    .toolbar-left { display: flex; align-items: center; gap: 10px; flex-grow: 1; flex-wrap: wrap; }
+    .toolbar-left { display: flex; align-items: center; gap: 8px; flex-grow: 1; flex-wrap: wrap; }
     
     .file-dropzone { border: 2px dashed var(--border-color); border-radius: 6px; padding: 6px 12px; text-align: center; background: var(--input-bg); cursor: pointer; flex-grow: 1; transition: border-color 0.2s; font-size: 0.82rem; }
     .file-dropzone:hover { border-color: var(--accent-blue); }
@@ -62,6 +66,9 @@
 
     .btn { padding: 6px 10px; font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); border-radius: 5px; cursor: pointer; transition: background 0.15s; }
     .btn:hover { opacity: 0.85; }
+    .btn-active { background-color: var(--accent-blue); color: #ffffff; border-color: var(--accent-blue); }
+
+    .select-control { padding: 6px 10px; font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); border-radius: 5px; cursor: pointer; outline: none; }
 
     /* Export Dropdown Menu */
     .export-dropdown-container { position: relative; display: inline-block; }
@@ -83,18 +90,7 @@
       overflow: hidden;
     }
 
-    .export-dropdown-container::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      height: 6px;
-    }
-
-    .export-dropdown-container:hover .export-menu {
-      display: block;
-    }
+    .export-dropdown-container:hover .export-menu { display: block; }
 
     .export-menu-item {
       display: flex;
@@ -155,20 +151,77 @@
     .modal-section-title { font-weight: 700; color: var(--text-main); margin-bottom: 4px; }
     .modal-disclaimer { background: var(--tile-inactive-bg); padding: 10px 12px; border-left: 3px solid var(--accent-blue); border-radius: 4px; font-size: 0.78rem; color: var(--text-main); }
 
-    /* Master Lock Controls Bar */
-    .master-lock-bar { display: flex; align-items: center; justify-content: space-between; background: var(--tile-inactive-bg); padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; }
+    /* Master Lock Controls Bar & Presets */
+    .master-lock-bar { display: flex; align-items: center; justify-content: space-between; background: var(--tile-inactive-bg); padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; flex-wrap: wrap; gap: 8px; }
     .master-lock-label { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; color: var(--accent-blue); cursor: pointer; user-select: none; }
+    .preset-btn-group { display: flex; align-items: center; gap: 6px; }
+    .preset-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
 
     /* Matrix Container & Table */
     .matrix-scroll-wrapper { width: 100%; overflow: auto; max-height: 520px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); position: relative; }
     .matrix-table { border-collapse: separate; border-spacing: 0; font-size: 0.72rem; text-align: right; width: 100%; }
     .matrix-table th, .matrix-table td { padding: 4px 6px; border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); white-space: nowrap; font-weight: 500; }
     
-    .matrix-table th { background: var(--grid-header-bg); color: var(--text-main); position: sticky; top: 0; z-index: 2; font-weight: 700; text-align: center; }
+    .matrix-table th { background: var(--grid-header-bg); color: var(--text-main); position: sticky; top: 0; z-index: 2; font-weight: 700; text-align: center; transition: background 0.15s, color 0.15s; }
     .matrix-table th.first-col-header { position: sticky; left: 0; z-index: 4; text-align: left; background: var(--grid-header-bg); }
-    .matrix-table td.row-header { position: sticky; left: 0; z-index: 3; background: var(--grid-header-bg); font-weight: 700; text-align: left; color: var(--text-main); }
-    .matrix-table td.matrix-cell { cursor: pointer; transition: outline 0.1s; }
-    .matrix-table td.matrix-cell:hover { outline: 2px solid var(--accent-blue); z-index: 5; }
+    .matrix-table td.row-header { position: sticky; left: 0; z-index: 3; background: var(--grid-header-bg); font-weight: 700; text-align: left; color: var(--text-main); transition: background 0.15s, color 0.15s; }
+    .matrix-table td.matrix-cell { cursor: pointer; box-sizing: border-box; position: relative; }
+
+    /* Market Event Dot Indicator */
+    .matrix-cell.has-event::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 5px;
+      height: 5px;
+      background-color: var(--event-dot-color);
+      border-radius: 50%;
+      box-shadow: 0 0 2px rgba(0,0,0,0.4);
+    }
+
+    /* Highlight Ray Styles */
+    .matrix-table th.highlight-header, 
+    .matrix-table td.row-header.highlight-header { 
+      background-color: var(--accent-blue) !important; 
+      color: #ffffff !important; 
+    }
+    .matrix-table td.matrix-cell.highlight-row { 
+      border-top: 2px solid var(--crosshair-color) !important;
+      border-bottom: 2px solid var(--crosshair-color) !important;
+    }
+    .matrix-table td.matrix-cell.highlight-col { 
+      border-left: 2px solid var(--crosshair-color) !important;
+      border-right: 2px solid var(--crosshair-color) !important;
+    }
+    .matrix-table td.matrix-cell.highlight-target { 
+      outline: 3px solid var(--crosshair-color) !important;
+      outline-offset: -2px;
+      z-index: 5;
+    }
+
+    /* Summary Metrics Bar */
+    .summary-metrics-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .metric-card {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px 10px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+    }
+    .metric-title { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+    .metric-value { font-size: 0.95rem; font-weight: 700; color: var(--text-main); }
+    .metric-sub { font-size: 0.68rem; color: var(--text-muted); }
 
     /* Interactive Hover Tooltip */
     #matrixCellTooltip {
@@ -184,24 +237,26 @@
       z-index: 9999;
       pointer-events: none;
       line-height: 1.4;
+      max-width: 320px;
     }
     #matrixCellTooltip .tooltip-title { font-weight: 700; color: var(--accent-blue); margin-bottom: 4px; font-size: 0.78rem; border-bottom: 1px solid var(--border-color); padding-bottom: 2px; }
     #matrixCellTooltip .tooltip-row { display: flex; justify-content: space-between; gap: 12px; }
     #matrixCellTooltip .tooltip-label { color: var(--text-muted); font-weight: 500; }
     #matrixCellTooltip .tooltip-val { font-weight: 700; }
+    #matrixCellTooltip .tooltip-event { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--border-color); color: #f59e0b; font-size: 0.7rem; font-weight: 600; }
 
     /* Controls & Sliders Layout */
     .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; }
-    .axis-control-card { display: flex; flex-direction: column; gap: 8px; }
-    .axis-title { font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
+    .axis-control-card { display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+    .axis-title { font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; min-height: 24px; }
 
-    .date-inputs { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; }
+    .date-inputs { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; min-height: 28px; }
     .date-inputs input[type="month"] { padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 0.82rem; color: var(--text-main); background: var(--card-bg); }
 
     .lock-toggle-group { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: 600; color: var(--text-main); cursor: pointer; user-select: none; }
 
     /* Custom Dual Range Slider */
-    .slider-container { position: relative; height: 26px; display: flex; align-items: center; width: 100%; margin-top: 4px; }
+    .slider-container { position: relative; height: 26px; display: flex; align-items: center; width: 100%; margin-top: auto; }
     .slider-track-bg { position: absolute; width: 100%; height: 5px; background-color: var(--border-color); border-radius: 3px; }
     .slider-track-fill { position: absolute; height: 5px; background-color: var(--accent-blue); border-radius: 3px; }
     .range-input { 
@@ -222,10 +277,15 @@
     .fund-selector-section { display: flex; flex-direction: column; gap: 8px; background: var(--input-bg); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); }
     .fund-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; max-height: 140px; overflow-y: auto; }
     .fund-radio-tile { 
-      padding: 6px 10px; background-color: var(--tile-inactive-bg); color: var(--tile-inactive-text); border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.78rem; font-weight: 600; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+      padding: 6px 10px; background-color: var(--tile-inactive-bg); color: var(--tile-inactive-text); border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.78rem; font-weight: 600; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; transition: all 0.15s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
     }
     .fund-radio-tile:hover { filter: brightness(0.95); }
     .fund-radio-tile.selected { background-color: var(--card-bg); color: var(--text-main); border-color: var(--accent-blue); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 700; }
+    .risk-badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: 700; flex-shrink: 0; }
+    .risk-low { background: #dcfce7; color: #15803d; }
+    .risk-med { background: #fef9c3; color: #a16207; }
+    .risk-high { background: #fee2e2; color: #b91c1c; }
+    .fund-risk-disclaimer { font-size: 0.73rem; color: var(--text-muted); line-height: 1.35; margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -235,8 +295,22 @@
     <div class="top-toolbar">
       <div class="toolbar-left">
         <button id="darkModeToggle" class="btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+        
+        <!-- Guided Tour Trigger -->
+        <button class="btn btn-active" onclick="startGuidedTour()">🚀 How to Read</button>
+
+        <!-- Display Mode Toggle -->
+        <button id="viewModeBtn" class="btn" onclick="toggleViewMode()">💷 View Mode: % Return</button>
+
+        <!-- Heatmap Palette Selector -->
+        <select id="colorScaleSelect" class="select-control" onchange="onColorScaleChange(this.value)">
+          <option value="classic">🎨 Palette: Classic (Red-Green)</option>
+          <option value="viridis">🎨 Palette: Viridis</option>
+          <option value="monochrome">🎨 Palette: High-Contrast</option>
+        </select>
+
         <!-- Information Modal Trigger Button -->
-        <button id="infoModalBtn" class="btn" onclick="toggleInfoModal(true)">ℹ️ Info</button>
+        <!-- <button id="infoModalBtn" class="btn" onclick="toggleInfoModal(true)">ℹ️ Info</button> -->
         
         <div class="file-dropzone" id="dropzone">
           <span id="fileStatus">📁 Drag & drop <strong>lifesight_fundprices_triangle.csv</strong> or </span>
@@ -244,7 +318,7 @@
           <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
         </div>
 
-        <!-- Export Matrix Dropdown placed right of Browse File -->
+        <!-- Export Matrix Dropdown -->
         <div class="export-dropdown-container">
           <button class="btn btn-export">📤 Export Matrix ▼</button>
           <div class="export-menu">
@@ -274,6 +348,37 @@
         </tbody>
       </table>
     </div>
+
+    <!-- UI Summary Metrics Bar -->
+    <div class="summary-metrics-bar" id="summaryMetricsBar">
+      <div class="metric-card">
+        <span class="metric-title">Highest Return</span>
+        <span class="metric-value" id="metricHighest">-</span>
+        <span class="metric-sub" id="metricHighestSub">Buy: - | Eval: -</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-title">Lowest Return</span>
+        <span class="metric-value" id="metricLowest">-</span>
+        <span class="metric-sub" id="metricLowestSub">Buy: - | Eval: -</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-title">Average Return</span>
+        <span class="metric-value" id="metricAvg">-</span>
+        <span class="metric-sub" id="metricAvgSub">Across visible grid</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-title">Win / Loss Ratio</span>
+        <span class="metric-value" id="metricPosNeg">-</span>
+        <span class="metric-sub" id="metricPosNegSub">Positive vs. Negative</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-title">Cash Baseline (3% p.a.)</span>
+        <span class="metric-value" id="metricCashBenchmark">-</span>
+        <span class="metric-sub" id="metricCashSub">Est. Cash Savings Growth</span>
+      </div>
+    </div>
+
+
 
     <!-- Controls Grid including Date Ranges and Inflation Slider -->
     <div class="controls-grid">
@@ -323,30 +428,43 @@
       <div class="axis-control-card">
         <div class="axis-title">
           <span>Inflation Rate Adjustment 🎈</span>
-          <span id="inflationValDisplay" style="color: var(--accent-blue); font-weight: 700;">0% (Nominal)</span>
+          <span id="inflationValDisplay" style="color: var(--accent-blue); font-weight: 700;">0.0% (Nominal)</span>
         </div>
-        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px;">
-          Adjusts color grading for real returns over holding duration
+        <div class="date-inputs" style="color: var(--text-muted); font-size: 0.75rem; font-weight: normal;">
+          Adjusts heatmap color grading to real return values (0.5% steps)
         </div>
-        <div class="slider-container" style="margin-top: 10px;">
-          <input type="range" id="inflationSlider" min="0" max="6" step="1" value="0" style="width: 100%; cursor: pointer;" oninput="onInflationChange(this.value)">
+        <div class="slider-container">
+          <input type="range" id="inflationSlider" min="0" max="6" step="0.5" value="0" style="width: 100%; cursor: pointer; position: relative; z-index: 1;" oninput="onInflationChange(this.value)">
         </div>
       </div>
     </div>
 
-    <!-- Synchronized / Master Lock Option Bar -->
+
+    <!-- Master Lock Option & Preset Timeframe Bar -->
     <div class="master-lock-bar">
       <label class="master-lock-label">
         <input type="checkbox" id="syncLockToggle" onchange="onSyncLockToggleChange()">
         <span>🔗 Synchronize both axes (Lock & Move Horizontal & Vertical together)</span>
       </label>
-      <span style="font-size: 0.75rem; color: var(--text-muted);">Moving either slider shifts both date windows simultaneously</span>
+
+      <!-- Preset Timeframe Buttons (1Y, 3Y, 5Y - Excluded Max) -->
+      <div class="preset-btn-group">
+        <span class="preset-label">Presets:</span>
+        <button class="btn" onclick="applyPresetSpan(12)">1Y</button>
+        <button class="btn" onclick="applyPresetSpan(36)">3Y</button>
+        <button class="btn" onclick="applyPresetSpan(60)">5Y</button>
+      </div>
     </div>
+
+
 
     <!-- Strict Single Selection Fund Picker -->
     <div class="fund-selector-section">
       <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Select Fund (Single Choice):</span>
       <div id="fundGrid" class="fund-grid"></div>
+      <div class="fund-risk-disclaimer">
+        <em>Note: Risk badges (Low, Med, High) indicate general asset type (e.g., Cash is Low, Bonds are Medium, Equities are High) and do not reflect specific risk ratings for individual funds. Please consult each fund's official Factsheet for full risk details.</em>
+      </div>
     </div>
   </div>
 
@@ -360,31 +478,21 @@
         <span class="modal-title">ℹ️ About LifeSight Return Matrix</span>
         <button class="modal-close" onclick="toggleInfoModal(false)">&times;</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" id="modalBodyContent">
         <div>
           <div class="modal-section-title">How to Use the App</div>
           <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
             <li><strong>Load CSV dataset:</strong> Drag and drop the CSV file or click the browse button to select it.</li>
             <li><strong>Select a Fund:</strong> Choose a single fund tile at the bottom to load its return matrix.</li>
-            <li><strong>Adjust Time Ranges:</strong> Use the dual sliders or month pickers to adjust Purchase (Horizontal) and Evaluation (Vertical) date spans.</li>
-            <li><strong>Inflation Adjustment:</strong> Move the Inflation Rate slider (0% to 6%) to see real returns reflected in the color grading.</li>
-            <li><strong>Lock & Synchronize:</strong> Lock window spans or check <em>Synchronize both axes</em> to shift time frames simultaneously.</li>
-            <li><strong>Hover for Details:</strong> Hover over matrix cells to view starting/ending prices, nominal vs. real returns, and holding duration.</li>
-            <li><strong>Export Data:</strong> Click <em>Export Matrix</em> to download the current grid as CSV, Excel, or a high-res PNG image.</li>
+            <li><strong>Display Mode:</strong> Switch between percentage returns (%) or growth of a £1,000 investment (£).</li>
+            <li><strong>Preset Timeframes:</strong> Click 1Y, 3Y, or 5Y for instant date range adjustments.</li>
+            <li><strong>Inflation Adjustment:</strong> Move the Inflation Rate slider to recalculate real returns against purchasing power.</li>
+            <li><strong>Market Events:</strong> Hover over cells (marked with a gold dot) to see major market context markers (e.g. COVID drop).</li>
           </ul>
         </div>
 
-        <div>
-          <div class="modal-section-title">Understanding World Events & Pension Impact</div>
-          <p>This triangular matrix illustrates cumulative returns across any chosen buy and evaluation timeframe. By cross-referencing specific market shocks (such as geopolitical conflicts, inflation spikes, or economic downturns) with historical dates, you can observe how major world events impact pension asset values over short durations and how returns compound through subsequent market recoveries.</p>
-        </div>
-
         <div class="modal-disclaimer">
-          <strong>⚠️ Disclaimer:</strong> This matrix is calculated using end-of-month unit prices and will not reflect an individual's specific timing of contributions, which occur later in the monthly cycle via the mastertrust administrators.
-        </div>
-
-        <div style="font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 8px;">
-          Provided by <strong>Dave Whitehead</strong>. Updates available at: <a href="https://github.com/lakeuk/lifesight-unit-prices" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">https://github.com/lakeuk/lifesight-unit-prices</a>
+          <strong>⚠️ Disclaimer:</strong> Data points represent fund prices at a single point in the month and do not reflect the exact day of the month a member's contribution is executed by the administrator.
         </div>
       </div>
     </div>
@@ -395,7 +503,27 @@
     let allDates = [];      
     let selectedFund = null;
     let isDarkMode = false;
-    let annualInflationRate = 0.00; // Global inflation rate decimal
+    let annualInflationRate = 0.00;
+    let activePalette = 'classic';
+    let isMonetaryView = false; // % vs £1,000 growth
+
+    // Market Milestones Map
+    const marketEvents = {
+      '2016-06': '🇬🇧 Brexit Referendum: GBP volatility & market uncertainty',
+      '2018-02': '📉 Volatility Spike: Global market correction',
+      '2018-12': '📉 Market Dip: Global equities decline',
+      '2019-12': '🦠 COVID-19 Outbreak: Initial market concerns',
+      '2020-03': '🦠 COVID-19 Market Crash: Global market sell-off',
+      '2020-11': '💉 Vaccine Breakthrough: Major market rebound',
+      '2021-01': '📈 Market Rally: Tech & growth stocks surge',
+      '2021-05': '📉 Inflation Concerns: Rising commodity prices & market jitters',
+      '2021-11': '💰 Inflation Surge: Rising consumer prices & interest rate concerns',
+      '2022-02': '🕊️ War in Ukraine: Energy shock & surge in global inflation',
+      '2022-09': '🇬🇧 UK Mini-Budget: UK gilt crisis & market volatility',
+      '2023-10': '📊 Economic Outlook: Market expectations & policy implications',
+      '2025-03': '📉 Trump Tariff Announcement: Market reaction to trade policy changes',
+      '2026-03': '📉 Trump Iran Tensions: Market response to geopolitical events'
+    };
 
     // Axis Range Indices
     let xMinIdx = 0, xMaxIdx = 0;
@@ -414,12 +542,44 @@
       isDarkMode = !isDarkMode;
       document.body.classList.toggle('dark-mode', isDarkMode);
       document.getElementById('darkModeToggle').innerText = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+      renderMatrix();
+    }
+
+    function toggleViewMode() {
+      isMonetaryView = !isMonetaryView;
+      document.getElementById('viewModeBtn').innerText = isMonetaryView ? '💷 View Mode: £ Growth' : '💷 View Mode: % Return';
+      renderMatrix();
+    }
+
+    function onColorScaleChange(val) {
+      activePalette = val;
+      renderMatrix();
     }
 
     function toggleInfoModal(show) {
       const modal = document.getElementById('infoModal');
       if (show) modal.classList.add('active');
       else modal.classList.remove('active');
+    }
+
+    function startGuidedTour() {
+      const modal = document.getElementById('infoModal');
+      const body = document.getElementById('modalBodyContent');
+      body.innerHTML = `
+        <div style="font-weight: 700; font-size: 1rem; color: var(--accent-blue);">🚀 How to Read a Triangular Matrix</div>
+        <p>Triangular matrices display fund returns across <strong>every possible buy and sell combination</strong>.</p>
+        <ol style="padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
+          <li><strong>Horizontal Axis (Top):</strong> Represents the month you bought or started contributing to the fund.</li>
+          <li><strong>Vertical Axis (Left):</strong> Represents the month you evaluated or sold the investment.</li>
+          <li><strong>Intersection Cell:</strong> Intersecting any row and column shows your return performance over that precise period.</li>
+          <li><strong>Market Events:</strong> Cells with a gold dot in the top-left indicate key market events occurred during the start or end month.</li>
+          <li><strong>Hovering:</strong> Hover over any cell to see monetary growth (£1,000 baseline), holding duration, real inflation returns, and market event context.</li>
+        </ol>
+        <div class="modal-disclaimer" style="margin-top: 10px;">
+          <strong>⚠️ Disclaimer:</strong> Data points represent fund prices at a single point in the month and do not reflect the exact day of the month a member's contribution is executed by the administrator.
+        </div>
+      `;
+      modal.classList.add('active');
     }
 
     const dropzone = document.getElementById('dropzone');
@@ -524,6 +684,28 @@
       renderMatrix();
     }
 
+    function applyPresetSpan(monthsSpan) {
+      if (allDates.length === 0) return;
+      const maxAvailableIdx = allDates.length - 1;
+
+      yMaxIdx = maxAvailableIdx;
+      yMinIdx = Math.max(0, yMaxIdx - monthsSpan + 1);
+
+      xMaxIdx = Math.max(0, maxAvailableIdx - 1);
+      xMinIdx = Math.max(0, xMaxIdx - monthsSpan + 1);
+
+      setupSliders('x');
+      setupSliders('y');
+      renderMatrix();
+    }
+
+    function getFundRiskProfile(fundName) {
+      const lower = fundName.toLowerCase();
+      if (lower.includes('cash') || lower.includes('liquidity') || lower.includes('money market')) return { label: 'Low Risk', class: 'risk-low' };
+      if (lower.includes('bond') || lower.includes('de-risking') || lower.includes('diversified')) return { label: 'Med Risk', class: 'risk-med' };
+      return { label: 'High Risk', class: 'risk-high' };
+    }
+
     function renderFundGrid() {
       const grid = document.getElementById('fundGrid');
       grid.innerHTML = '';
@@ -531,9 +713,18 @@
 
       funds.forEach(fundName => {
         const isSelected = (fundName === selectedFund);
+        const risk = getFundRiskProfile(fundName);
+
         const tile = document.createElement('div');
         tile.className = `fund-radio-tile ${isSelected ? 'selected' : ''}`;
-        tile.innerHTML = `<input type="radio" name="fundRadio" ${isSelected ? 'checked' : ''}> <span>${fundName}</span>`;
+        tile.title = fundName; // Hover title showing full fund name
+        tile.innerHTML = `
+          <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+            <input type="radio" name="fundRadio" ${isSelected ? 'checked' : ''}> 
+            <span style="overflow:hidden; text-overflow:ellipsis;">${fundName}</span>
+          </div>
+          <span class="risk-badge ${risk.class}">${risk.label}</span>
+        `;
         tile.onclick = () => {
           if (selectedFund !== fundName) {
             selectedFund = fundName;
@@ -594,7 +785,7 @@
 
     function onInflationChange(val) {
       annualInflationRate = parseFloat(val) / 100;
-      document.getElementById('inflationValDisplay').innerText = val === '0' ? '0% (Nominal)' : `${val}% Annual Inflation`;
+      document.getElementById('inflationValDisplay').innerText = parseFloat(val) === 0 ? '0.0% (Nominal)' : `${parseFloat(val).toFixed(1)}% Annual Inflation`;
       renderMatrix();
     }
 
@@ -725,6 +916,12 @@
     }
 
     function getCellColor(pct) {
+      if (activePalette === 'viridis') return getViridisColor(pct);
+      if (activePalette === 'monochrome') return getMonochromeColor(pct);
+      return getClassicColor(pct);
+    }
+
+    function getClassicColor(pct) {
       if (pct <= 0) return { bg: '#fecaca', text: '#991b1b' };
       if (pct >= 5) return { bg: '#bbf7d0', text: '#166534' };
 
@@ -746,6 +943,35 @@
       return { bg: `rgb(${r}, ${g}, ${b})`, text: '#0f172a' };
     }
 
+    function getViridisColor(pct) {
+      let norm = Math.max(0, Math.min(1, (pct + 5) / 20));
+      const colors = [
+        { r: 68, g: 1, b: 84 },
+        { r: 59, g: 82, b: 139 },
+        { r: 33, g: 145, b: 140 },
+        { r: 94, g: 201, b: 98 },
+        { r: 253, g: 231, b: 37 }
+      ];
+      let scaled = norm * (colors.length - 1);
+      let idx = Math.floor(scaled);
+      let t = scaled - idx;
+      if (idx >= colors.length - 1) { idx = colors.length - 2; t = 1; }
+      let c1 = colors[idx], c2 = colors[idx + 1];
+      let r = Math.round(c1.r + (c2.r - c1.r) * t);
+      let g = Math.round(c1.g + (c2.g - c1.g) * t);
+      let b = Math.round(c1.b + (c2.b - c1.b) * t);
+      let text = (norm < 0.45) ? '#ffffff' : '#000000';
+      return { bg: `rgb(${r}, ${g}, ${b})`, text: text };
+    }
+
+    function getMonochromeColor(pct) {
+      let norm = Math.max(0, Math.min(1, (pct + 5) / 25));
+      let lum = Math.round(30 + norm * 200);
+      let bg = `rgb(${lum}, ${lum}, ${lum})`;
+      let text = lum > 130 ? '#000000' : '#ffffff';
+      return { bg: bg, text: text };
+    }
+
     function calculateDuration(startDate, endDate) {
       const totalMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
       const years = (totalMonths / 12).toFixed(1);
@@ -761,35 +987,44 @@
 
       const headerRow = document.getElementById('matrixHeaderRow');
       headerRow.innerHTML = '<th class="first-col-header">Date</th>';
-      xDates.forEach(d => {
-        headerRow.innerHTML += `<th>${formatYearMonth(d)}</th>`;
+      xDates.forEach((d, colIdx) => {
+        headerRow.innerHTML += `<th data-col="${colIdx}">${formatYearMonth(d)}</th>`;
       });
 
       const body = document.getElementById('matrixBody');
       body.innerHTML = '';
 
-      yDates.forEach(yD => {
+      let validCells = [];
+      let highestCell = null;
+      let lowestCell = null;
+      let positiveCount = 0;
+      let sumReturn = 0;
+
+      yDates.forEach((yD, rowIdx) => {
         const yTime = yD.getTime();
         const yPrice = prices[yTime];
 
         let tr = document.createElement('tr');
-        tr.innerHTML = `<td class="row-header">${formatYearMonth(yD)}</td>`;
+        
+        const rowHeaderTd = document.createElement('td');
+        rowHeaderTd.className = 'row-header';
+        rowHeaderTd.dataset.row = rowIdx;
+        rowHeaderTd.innerText = formatYearMonth(yD);
+        tr.appendChild(rowHeaderTd);
 
-        xDates.forEach(xD => {
+        xDates.forEach((xD, colIdx) => {
           const xTime = xD.getTime();
           const xPrice = prices[xTime];
 
           if (xTime >= yTime || !xPrice || !yPrice) {
-            tr.innerHTML += '<td style="background-color: transparent;"></td>';
+            const emptyTd = document.createElement('td');
+            emptyTd.style.backgroundColor = 'transparent';
+            tr.appendChild(emptyTd);
           } else {
-            // Nominal cumulative return
             const nominalPct = ((yPrice - xPrice) / xPrice) * 100;
-            
-            // Holding period in years
             const totalMonths = (yD.getFullYear() - xD.getFullYear()) * 12 + (yD.getMonth() - xD.getMonth());
             const years = totalMonths / 12;
 
-            // Inflation-adjusted real return
             let realPct = nominalPct;
             if (annualInflationRate > 0) {
               const nominalFactor = 1 + (nominalPct / 100);
@@ -797,20 +1032,47 @@
               realPct = ((nominalFactor / inflationFactor) - 1) * 100;
             }
 
-            // Cell background style driven by real return value
-            const style = getCellColor(realPct);
+            const displayValPct = realPct;
+            const style = getCellColor(displayValPct);
             const durationStr = calculateDuration(xD, yD);
+            const buyKey = formatYearMonth(xD);
+            const evalKey = formatYearMonth(yD);
+            const hasMarketEvent = Boolean(marketEvents[evalKey]);
 
             const td = document.createElement('td');
-            td.className = 'matrix-cell';
+            td.className = `matrix-cell${hasMarketEvent ? ' has-event' : ''}`;
+            td.dataset.row = rowIdx;
+            td.dataset.col = colIdx;
             td.style.backgroundColor = style.bg;
             td.style.color = style.text;
-            td.innerText = `${nominalPct.toFixed(1)}%`;
 
-            // Hover Tooltip Events displaying nominal and real figures
-            td.onmouseenter = (e) => showCellTooltip(e, xD, yD, xPrice, yPrice, nominalPct, realPct, durationStr);
+            // Render Text depending on View Mode (£ vs %)
+            if (isMonetaryView) {
+              const g1000 = 1000 * (1 + (displayValPct / 100));
+              td.innerText = `£${Math.round(g1000)}`;
+            } else {
+              td.innerText = `${displayValPct.toFixed(1)}%`;
+            }
+
+            const activePct = displayValPct;
+            validCells.push(activePct);
+            sumReturn += activePct;
+            if (activePct >= 0) positiveCount++;
+
+            const cellInfo = { val: activePct, nominal: nominalPct, real: realPct, buy: formatYearMonth(xD), eval: formatYearMonth(yD) };
+            if (!highestCell || activePct > highestCell.val) highestCell = cellInfo;
+            if (!lowestCell || activePct < lowestCell.val) lowestCell = cellInfo;
+
+            // Hover Tooltip with Market Milestones
+            td.onmouseenter = (e) => {
+              showCellTooltip(e, xD, yD, xPrice, yPrice, nominalPct, realPct, durationStr, years);
+              highlightRay(rowIdx, colIdx);
+            };
             td.onmousemove = (e) => moveCellTooltip(e);
-            td.onmouseleave = () => hideCellTooltip();
+            td.onmouseleave = () => {
+              hideCellTooltip();
+              clearRayHighlight();
+            };
 
             tr.appendChild(td);
           }
@@ -818,12 +1080,92 @@
 
         body.appendChild(tr);
       });
+
+      updateSummaryMetrics(validCells, highestCell, lowestCell, sumReturn, positiveCount, xDates, yDates);
     }
 
-    /* Dynamic Tooltip Handler Functions */
+    function highlightRay(rowIdx, colIdx) {
+      clearRayHighlight();
+
+      const table = document.getElementById('matrixTable');
+      
+      const th = table.querySelector(`th[data-col="${colIdx}"]`);
+      if (th) th.classList.add('highlight-header');
+
+      const rowHeader = table.querySelector(`td.row-header[data-row="${rowIdx}"]`);
+      if (rowHeader) rowHeader.classList.add('highlight-header');
+
+      const colCells = table.querySelectorAll(`td.matrix-cell[data-col="${colIdx}"]`);
+      colCells.forEach(c => c.classList.add('highlight-col'));
+
+      const rowCells = table.querySelectorAll(`td.matrix-cell[data-row="${rowIdx}"]`);
+      rowCells.forEach(c => c.classList.add('highlight-row'));
+
+      const activeCell = table.querySelector(`td.matrix-cell[data-row="${rowIdx}"][data-col="${colIdx}"]`);
+      if (activeCell) activeCell.classList.add('highlight-target');
+    }
+
+    function clearRayHighlight() {
+      const table = document.getElementById('matrixTable');
+      table.querySelectorAll('.highlight-header').forEach(el => el.classList.remove('highlight-header'));
+      table.querySelectorAll('.highlight-col').forEach(el => el.classList.remove('highlight-col'));
+      table.querySelectorAll('.highlight-row').forEach(el => el.classList.remove('highlight-row'));
+      table.querySelectorAll('.highlight-target').forEach(el => el.classList.remove('highlight-target'));
+    }
+
+    function updateSummaryMetrics(validCells, highest, lowest, sumReturn, positiveCount, xDates, yDates) {
+      const total = validCells.length;
+      const isInf = annualInflationRate > 0;
+      const infSuffix = isInf ? ` (Real)` : ' (Nominal)';
+
+      if (total === 0) {
+        document.getElementById('metricHighest').innerText = '-';
+        document.getElementById('metricLowest').innerText = '-';
+        document.getElementById('metricAvg').innerText = '-';
+        document.getElementById('metricPosNeg').innerText = '-';
+        document.getElementById('metricCashBenchmark').innerText = '-';
+        return;
+      }
+
+      document.getElementById('metricHighest').innerText = isMonetaryView ? `£${Math.round(1000 * (1 + (highest.val / 100)))}` : `${highest.val >= 0 ? '+' : ''}${highest.val.toFixed(2)}%`;
+      document.getElementById('metricHighestSub').innerText = `Buy: ${highest.buy} | Eval: ${highest.eval}${infSuffix}`;
+
+      document.getElementById('metricLowest').innerText = isMonetaryView ? `£${Math.round(1000 * (1 + (lowest.val / 100)))}` : `${lowest.val >= 0 ? '+' : ''}${lowest.val.toFixed(2)}%`;
+      document.getElementById('metricLowestSub').innerText = `Buy: ${lowest.buy} | Eval: ${lowest.eval}${infSuffix}`;
+
+      const avg = sumReturn / total;
+      document.getElementById('metricAvg').innerText = isMonetaryView ? `£${Math.round(1000 * (1 + (avg / 100)))}` : `${avg >= 0 ? '+' : ''}${avg.toFixed(2)}%`;
+      document.getElementById('metricAvgSub').innerText = `Across ${total} visible cells${infSuffix}`;
+
+      const posPct = ((positiveCount / total) * 100).toFixed(1);
+      const negCount = total - positiveCount;
+      document.getElementById('metricPosNeg').innerText = `${posPct}% Positive`;
+      document.getElementById('metricPosNegSub').innerText = `${positiveCount} Gain / ${negCount} Loss cells`;
+
+      // Cash Benchmark Calculation (Assuming 3% p.a. cash interest baseline)
+      if (xDates.length > 0 && yDates.length > 0) {
+        const start = xDates[0];
+        const end = yDates[yDates.length - 1];
+        const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+        const years = months / 12;
+        const cashReturnPct = (Math.pow(1.03, years) - 1) * 100;
+        const cashGrowth = 1000 * (1 + (cashReturnPct / 100));
+
+        document.getElementById('metricCashBenchmark').innerText = isMonetaryView ? `£${Math.round(cashGrowth)}` : `+${cashReturnPct.toFixed(1)}%`;
+        document.getElementById('metricCashSub').innerText = `Based on 3% p.a. cash savings over ${years.toFixed(1)} yrs`;
+      }
+    }
+
     const tooltip = document.getElementById('matrixCellTooltip');
 
-    function showCellTooltip(e, xD, yD, xPrice, yPrice, nominalPct, realPct, durationStr) {
+    function showCellTooltip(e, xD, yD, xPrice, yPrice, nominalPct, realPct, durationStr, years) {
+      const monetaryValue = 1000 * (1 + (realPct / 100));
+      const buyKey = formatYearMonth(xD);
+      const evalKey = formatYearMonth(yD);
+      
+      let eventNotice = '';
+      if (marketEvents[evalKey]) eventNotice += `<div>${marketEvents[evalKey]}</div>`;
+
       tooltip.innerHTML = `
         <div class="tooltip-title">${selectedFund}</div>
         <div class="tooltip-row"><span class="tooltip-label">Buy Month:</span><span class="tooltip-val">${formatMMMYYYY(xD)}</span></div>
@@ -831,8 +1173,10 @@
         <div class="tooltip-row"><span class="tooltip-label">Starting Price:</span><span class="tooltip-val">£${xPrice.toFixed(4)}</span></div>
         <div class="tooltip-row"><span class="tooltip-label">Ending Price:</span><span class="tooltip-val">£${yPrice.toFixed(4)}</span></div>
         <div class="tooltip-row"><span class="tooltip-label">Holding Duration:</span><span class="tooltip-val">${durationStr}</span></div>
+        <div class="tooltip-row"><span class="tooltip-label">Growth of £1,000:</span><span class="tooltip-val" style="color: ${realPct >= 0 ? '#10b981' : '#ef4444'};">£${monetaryValue.toFixed(2)}</span></div>
         <div class="tooltip-row"><span class="tooltip-label">Nominal Return:</span><span class="tooltip-val" style="color: ${nominalPct >= 0 ? '#10b981' : '#ef4444'};">${nominalPct >= 0 ? '+' : ''}${nominalPct.toFixed(2)}%</span></div>
-        <div class="tooltip-row"><span class="tooltip-label">Real Return (${(annualInflationRate * 100).toFixed(0)}% Inf.):</span><span class="tooltip-val" style="color: ${realPct >= 0 ? '#10b981' : '#ef4444'};">${realPct >= 0 ? '+' : ''}${realPct.toFixed(2)}%</span></div>
+        <div class="tooltip-row"><span class="tooltip-label">Real Return (${(annualInflationRate * 100).toFixed(1)}% Inf.):</span><span class="tooltip-val" style="color: ${realPct >= 0 ? '#10b981' : '#ef4444'};">${realPct >= 0 ? '+' : ''}${realPct.toFixed(2)}%</span></div>
+        ${eventNotice ? `<div class="tooltip-event">${eventNotice}</div>` : ''}
       `;
       tooltip.style.display = 'block';
       moveCellTooltip(e);
@@ -858,7 +1202,6 @@
       tooltip.style.display = 'none';
     }
 
-    /* Export Matrix Functions (CSV, Excel, PNG) */
     function exportMatrix(format) {
       if (!selectedFund) {
         alert("Please select a fund first.");
