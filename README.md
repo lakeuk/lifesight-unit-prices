@@ -69,7 +69,7 @@ A: The dashboard is developed and maintained by **Dave Whitehead**. Updates and 
 A: You can construct your input CSV files according to following format requirements:
 
 ### Daily Unit Price CSV 
-Option 1 - (`lifesight_fundprices.csv`)  
+Option 1 - (`lifesight_fundprices.csv` or `{administrator}_fundprices.csv`)  
 Required headers (case-sensitive): `Administrator`, `FundID`, `Fund`, `Date`, `UnitPrice`
 
 ```csv
@@ -82,13 +82,22 @@ Option 2 - (`unit-prices.csv`) note: this is the layout provided by WTW LifeSigh
 Required headers (case-sensitive): `Fund Code`, `Fund Name`, `Unit Price Date`, `Currency code`, `Unit Price`
 
 ```csv
- Fund Code,Fund Name,Unit Price Date,Currency code,Unit Price
+Fund Code,Fund Name,Unit Price Date,Currency code,Unit Price
 LSAM,Annuity Matching,14/08/2026,GBP,1.057
 LSAM,Annuity Matching,13/08/2026,GBP,1.0614
 ```
 
 ### Matrix Unit Price CSV 
-(`lifesight_fundprices_triangle.csv`)  
+Option 1 - (`lifesight_fundprices.csv` or `{administrator}_fundprices.csv`)  
+Required headers (case-sensitive): `Administrator`, `FundID`, `Fund`, `Date`, `UnitPrice`
+
+```csv
+Administrator,FundID,Fund,Date,UnitPrice
+LifeSight,101,LifeSight Equity - LSEQ,2016-08-31,1.2534
+LifeSight,101,LifeSight Equity - LSEQ,2016-09-01,1.2465
+```
+
+Option 2 - (`lifesight_fundprices_triangle.csv`)  
 Required headers (case-sensitive): `Administrator`, `FundID`, `Fund`, `PurchaseDate`, `FirstUnitPrice`, `Date`, `UnitPrice`, `PercentChange`
 
 ```csv

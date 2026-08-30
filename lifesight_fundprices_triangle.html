@@ -309,11 +309,8 @@
           <option value="monochrome">🎨 Palette: High-Contrast</option>
         </select>
 
-        <!-- Information Modal Trigger Button -->
-        <!-- <button id="infoModalBtn" class="btn" onclick="toggleInfoModal(true)">ℹ️ Info</button> -->
-        
         <div class="file-dropzone" id="dropzone">
-          <span id="fileStatus">📁 Drag & drop <strong>lifesight_fundprices_triangle.csv</strong> or </span>
+          <span id="fileStatus">📁 Drag & drop <strong>lifesight_fundprices.csv</strong> or <strong>lifesight_fundprices_triangle.csv</strong></span>
           <label for="csvFileInput">Browse File</label>
           <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
         </div>
@@ -378,8 +375,6 @@
       </div>
     </div>
 
-
-
     <!-- Controls Grid including Date Ranges and Inflation Slider -->
     <div class="controls-grid">
       <!-- Axis X: Purchase Date Range -->
@@ -439,7 +434,6 @@
       </div>
     </div>
 
-
     <!-- Master Lock Option & Preset Timeframe Bar -->
     <div class="master-lock-bar">
       <label class="master-lock-label">
@@ -455,8 +449,6 @@
         <button class="btn" onclick="applyPresetSpan(60)">5Y</button>
       </div>
     </div>
-
-
 
     <!-- Strict Single Selection Fund Picker -->
     <div class="fund-selector-section">
@@ -482,7 +474,7 @@
         <div>
           <div class="modal-section-title">How to Use the App</div>
           <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
-            <li><strong>Load CSV dataset:</strong> Drag and drop the CSV file or click the browse button to select it.</li>
+            <li><strong>Load CSV dataset:</strong> Supports both <code>lifesight_fundprices.csv</code> (long timeseries format) and <code>lifesight_fundprices_triangle.csv</code>.</li>
             <li><strong>Select a Fund:</strong> Choose a single fund tile at the bottom to load its return matrix.</li>
             <li><strong>Display Mode:</strong> Switch between percentage returns (%) or growth of a £1,000 investment (£).</li>
             <li><strong>Preset Timeframes:</strong> Click 1Y, 3Y, or 5Y for instant date range adjustments.</li>
@@ -534,11 +526,17 @@
     let yMinIdx = 0, yMaxIdx = 0;
 
     window.addEventListener('DOMContentLoaded', () => {
+      // Try loading triangle format first, fallback to standard long format
       fetch('lifesight_fundprices_triangle.csv')
         .then(res => { if (!res.ok) throw new Error(); return res.text(); })
         .then(csvText => parseAndInitData(csvText))
         .catch(() => {
-          document.getElementById('fileStatus').innerHTML = "📁 Drag & drop <strong>lifesight_fundprices_triangle.csv</strong> or ";
+          fetch('lifesight_fundprices.csv')
+            .then(res => { if (!res.ok) throw new Error(); return res.text(); })
+            .then(csvText => parseAndInitData(csvText))
+            .catch(() => {
+              document.getElementById('fileStatus').innerHTML = "📁 Drag & drop <strong>lifesight_fundprices.csv</strong> or <strong>lifesight_fundprices_triangle.csv</strong>";
+            });
         });
     });
 
@@ -581,14 +579,13 @@
         </ol>
           <div style="font-weight: 700; font-size: 1rem; color: var(--accent-blue);">🖱️ How to Use the App</div>
           <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
-            <li><strong>Load CSV dataset:</strong> Drag and drop the CSV file or click the browse button to select it.</li>
+            <li><strong>Load CSV dataset:</strong> Supports both <code>lifesight_fundprices.csv</code> and <code>lifesight_fundprices_triangle.csv</code>.</li>
             <li><strong>Select a Fund:</strong> Choose a single fund tile at the bottom to load its return matrix.</li>
             <li><strong>Display Mode:</strong> Switch between percentage returns (%) or growth of a £1,000 investment (£).</li>
             <li><strong>Preset Timeframes:</strong> Click 1Y, 3Y, or 5Y for instant date range adjustments.</li>
             <li><strong>Inflation Adjustment:</strong> Move the Inflation Rate slider to recalculate real returns against purchasing power.</li>
           </ul>
         </div>
-
 
         <div class="modal-disclaimer" style="margin-top: 10px;">
           <strong>⚠️ Disclaimer:</strong> Data points represent fund prices at a single point in the month and do not reflect the exact day of the month a member's contribution is executed by the administrator.
@@ -651,28 +648,59 @@
     }
 
     function parseAndInitDataFromRows(rows) {
+      if (!rows || rows.length === 0) return;
+
       fundMap = {};
       const dateSet = new Map();
 
-      rows.forEach(row => {
-        const fundKey = Object.keys(row).find(k => k.toLowerCase() === 'fund');
-        const dateKey = Object.keys(row).find(k => k.toLowerCase() === 'date');
-        const priceKey = Object.keys(row).find(k => k.toLowerCase() === 'unitprice');
+      // Check format signature to detect flat timeseries (lifesight_fundprices.csv) vs matrix/triangle format
+      const sampleRow = rows[0];
+      const keys = Object.keys(sampleRow);
+      const isFlatFormat = keys.some(k => ['fund code', 'fund name', 'effective date', 'unit price net'].includes(k.toLowerCase()));
 
-        const fund = fundKey && row[fundKey] ? row[fundKey].trim() : null;
-        const dateStr = dateKey && row[dateKey] ? row[dateKey].trim() : null;
-        const price = priceKey ? parseFloat(row[priceKey]) : NaN;
+      if (isFlatFormat) {
+        // Transformation logic for standard lifesight_fundprices.csv format
+        rows.forEach(row => {
+          const fundNameKey = keys.find(k => k.toLowerCase() === 'fund name' || k.toLowerCase() === 'fund');
+          const dateKey = keys.find(k => k.toLowerCase() === 'effective date' || k.toLowerCase() === 'date');
+          const priceKey = keys.find(k => k.toLowerCase() === 'unit price net' || k.toLowerCase() === 'unitprice' || k.toLowerCase() === 'unit_price');
 
-        if (fund && dateStr && !isNaN(price)) {
-          if (!fundMap[fund]) fundMap[fund] = {};
-          const dateObj = parseDateStr(dateStr);
-          if (dateObj) {
-            const timeKey = dateObj.getTime();
-            fundMap[fund][timeKey] = price;
-            dateSet.set(timeKey, dateObj);
+          const fund = fundNameKey && row[fundNameKey] ? row[fundNameKey].trim() : null;
+          const dateStr = dateKey && row[dateKey] ? row[dateKey].trim() : null;
+          const price = priceKey ? parseFloat(row[priceKey]) : NaN;
+
+          if (fund && dateStr && !isNaN(price)) {
+            if (!fundMap[fund]) fundMap[fund] = {};
+            const dateObj = parseDateStr(dateStr);
+            if (dateObj) {
+              const timeKey = dateObj.getTime();
+              fundMap[fund][timeKey] = price;
+              dateSet.set(timeKey, dateObj);
+            }
           }
-        }
-      });
+        });
+      } else {
+        // Legacy/Triangle loader logic for lifesight_fundprices_triangle.csv format
+        rows.forEach(row => {
+          const fundKey = Object.keys(row).find(k => k.toLowerCase() === 'fund');
+          const dateKey = Object.keys(row).find(k => k.toLowerCase() === 'date');
+          const priceKey = Object.keys(row).find(k => k.toLowerCase() === 'unitprice');
+
+          const fund = fundKey && row[fundKey] ? row[fundKey].trim() : null;
+          const dateStr = dateKey && row[dateKey] ? row[dateKey].trim() : null;
+          const price = priceKey ? parseFloat(row[priceKey]) : NaN;
+
+          if (fund && dateStr && !isNaN(price)) {
+            if (!fundMap[fund]) fundMap[fund] = {};
+            const dateObj = parseDateStr(dateStr);
+            if (dateObj) {
+              const timeKey = dateObj.getTime();
+              fundMap[fund][timeKey] = price;
+              dateSet.set(timeKey, dateObj);
+            }
+          }
+        });
+      }
 
       allDates = Array.from(dateSet.values()).sort((a, b) => a.getTime() - b.getTime());
       if (allDates.length === 0) return;
