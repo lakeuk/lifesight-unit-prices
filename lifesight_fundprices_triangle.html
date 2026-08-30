@@ -503,6 +503,9 @@
     let activePalette = 'classic';
     let isMonetaryView = false; // % vs £1,000 growth
 
+    // Cache static month names to avoid re-creation
+    const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
     // Market Milestones Map
     const marketEvents = {
       '2016-06': '🇬🇧 Brexit Referendum: GBP volatility & market uncertainty',
@@ -525,7 +528,65 @@
     let xMinIdx = 0, xMaxIdx = 0;
     let yMinIdx = 0, yMaxIdx = 0;
 
+    // DOM Caches
+    let elements = {};
+
     window.addEventListener('DOMContentLoaded', () => {
+      // Cache DOM references
+      elements = {
+        matrixTable: document.getElementById('matrixTable'),
+        matrixHeaderRow: document.getElementById('matrixHeaderRow'),
+        matrixBody: document.getElementById('matrixBody'),
+        matrixCellTooltip: document.getElementById('matrixCellTooltip'),
+        activeFundDisplay: document.getElementById('activeFundDisplay'),
+        fileStatus: document.getElementById('fileStatus'),
+        darkModeToggle: document.getElementById('darkModeToggle'),
+        viewModeBtn: document.getElementById('viewModeBtn'),
+        infoModal: document.getElementById('infoModal'),
+        modalBodyContent: document.getElementById('modalBodyContent'),
+        fundGrid: document.getElementById('fundGrid'),
+        inflationValDisplay: document.getElementById('inflationValDisplay'),
+        xLockToggle: document.getElementById('xLockToggle'),
+        yLockToggle: document.getElementById('yLockToggle'),
+        syncLockToggle: document.getElementById('syncLockToggle'),
+        xStartMonth: document.getElementById('xStartMonth'),
+        xEndMonth: document.getElementById('xEndMonth'),
+        yStartMonth: document.getElementById('yStartMonth'),
+        yEndMonth: document.getElementById('yEndMonth'),
+        xSliderMin: document.getElementById('xSliderMin'),
+        xSliderMax: document.getElementById('xSliderMax'),
+        ySliderMin: document.getElementById('ySliderMin'),
+        ySliderMax: document.getElementById('ySliderMax'),
+        xSliderTrackFill: document.getElementById('xSliderTrackFill'),
+        ySliderTrackFill: document.getElementById('ySliderTrackFill'),
+        metricHighest: document.getElementById('metricHighest'),
+        metricHighestSub: document.getElementById('metricHighestSub'),
+        metricLowest: document.getElementById('metricLowest'),
+        metricLowestSub: document.getElementById('metricLowestSub'),
+        metricAvg: document.getElementById('metricAvg'),
+        metricAvgSub: document.getElementById('metricAvgSub'),
+        metricPosNeg: document.getElementById('metricPosNeg'),
+        metricPosNegSub: document.getElementById('metricPosNegSub'),
+        metricCashBenchmark: document.getElementById('metricCashBenchmark'),
+        metricCashSub: document.getElementById('metricCashSub'),
+        dropzone: document.getElementById('dropzone')
+      };
+
+      // Set up Event Delegation for Matrix Body (Replaces per-cell listener creation)
+      elements.matrixBody.addEventListener('mouseover', handleMatrixMouseOver);
+      elements.matrixBody.addEventListener('mousemove', moveCellTooltip);
+      elements.matrixBody.addEventListener('mouseout', handleMatrixMouseOut);
+
+      // Drag and Drop
+      const dropzone = elements.dropzone;
+      dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = '#2563eb'; });
+      dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = 'var(--border-color)'; });
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = 'var(--border-color)';
+        if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+      });
+
       // Try loading triangle format first, fallback to standard long format
       fetch('lifesight_fundprices_triangle.csv')
         .then(res => { if (!res.ok) throw new Error(); return res.text(); })
@@ -535,7 +596,7 @@
             .then(res => { if (!res.ok) throw new Error(); return res.text(); })
             .then(csvText => parseAndInitData(csvText))
             .catch(() => {
-              document.getElementById('fileStatus').innerHTML = "📁 Drag & drop <strong>lifesight_fundprices.csv</strong> or <strong>lifesight_fundprices_triangle.csv</strong>";
+              elements.fileStatus.innerHTML = "📁 Drag & drop <strong>lifesight_fundprices.csv</strong> or <strong>lifesight_fundprices_triangle.csv</strong>";
             });
         });
     });
@@ -543,13 +604,13 @@
     function toggleDarkMode() {
       isDarkMode = !isDarkMode;
       document.body.classList.toggle('dark-mode', isDarkMode);
-      document.getElementById('darkModeToggle').innerText = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+      elements.darkModeToggle.innerText = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
       renderMatrix();
     }
 
     function toggleViewMode() {
       isMonetaryView = !isMonetaryView;
-      document.getElementById('viewModeBtn').innerText = isMonetaryView ? '💷 View Mode: £ Growth' : '💷 View Mode: % Return';
+      elements.viewModeBtn.innerText = isMonetaryView ? '💷 View Mode: £ Growth' : '💷 View Mode: % Return';
       renderMatrix();
     }
 
@@ -559,15 +620,12 @@
     }
 
     function toggleInfoModal(show) {
-      const modal = document.getElementById('infoModal');
-      if (show) modal.classList.add('active');
-      else modal.classList.remove('active');
+      if (show) elements.infoModal.classList.add('active');
+      else elements.infoModal.classList.remove('active');
     }
 
     function startGuidedTour() {
-      const modal = document.getElementById('infoModal');
-      const body = document.getElementById('modalBodyContent');
-      body.innerHTML = `
+      elements.modalBodyContent.innerHTML = `
         <div style="font-weight: 700; font-size: 1rem; color: var(--accent-blue);">🚀 How to Read a Triangular Matrix</div>
         <p>Triangular matrices display fund returns across <strong>every possible buy and sell combination</strong>.</p>
         <ol style="padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
@@ -595,24 +653,15 @@
           Provided by <strong>Dave Whitehead</strong>. Updates available at: <a href="https://github.com/lakeuk/lifesight-unit-prices" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">https://github.com/lakeuk/lifesight-unit-prices</a>
         </div>
       `;
-      modal.classList.add('active');
+      elements.infoModal.classList.add('active');
     }
-
-    const dropzone = document.getElementById('dropzone');
-    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = '#2563eb'; });
-    dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = 'var(--border-color)'; });
-    dropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropzone.style.borderColor = 'var(--border-color)';
-      if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
-    });
 
     function handleFileSelect(event) {
       if (event.target.files.length > 0) processFile(event.target.files[0]);
     }
 
     function processFile(file) {
-      document.getElementById('fileStatus').innerHTML = `Loaded: <strong>${file.name}</strong>`;
+      elements.fileStatus.innerHTML = `Loaded: <strong>${file.name}</strong>`;
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
@@ -653,53 +702,32 @@
       fundMap = {};
       const dateSet = new Map();
 
-      // Check format signature to detect flat timeseries (lifesight_fundprices.csv) vs matrix/triangle format
       const sampleRow = rows[0];
       const keys = Object.keys(sampleRow);
-      const isFlatFormat = keys.some(k => ['fund code', 'fund name', 'effective date', 'unit price net'].includes(k.toLowerCase()));
+      
+      // Fast property key lookup pre-determination
+      const fundNameKey = keys.find(k => k.toLowerCase() === 'fund name' || k.toLowerCase() === 'fund');
+      const dateKey = keys.find(k => k.toLowerCase() === 'effective date' || k.toLowerCase() === 'date');
+      const priceKey = keys.find(k => {
+        const lower = k.toLowerCase();
+        return lower === 'unit price net' || lower === 'unitprice' || lower === 'unit_price';
+      });
 
-      if (isFlatFormat) {
-        // Transformation logic for standard lifesight_fundprices.csv format
-        rows.forEach(row => {
-          const fundNameKey = keys.find(k => k.toLowerCase() === 'fund name' || k.toLowerCase() === 'fund');
-          const dateKey = keys.find(k => k.toLowerCase() === 'effective date' || k.toLowerCase() === 'date');
-          const priceKey = keys.find(k => k.toLowerCase() === 'unit price net' || k.toLowerCase() === 'unitprice' || k.toLowerCase() === 'unit_price');
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const fund = fundNameKey && row[fundNameKey] ? row[fundNameKey].trim() : null;
+        const dateStr = dateKey && row[dateKey] ? row[dateKey].trim() : null;
+        const price = priceKey ? parseFloat(row[priceKey]) : NaN;
 
-          const fund = fundNameKey && row[fundNameKey] ? row[fundNameKey].trim() : null;
-          const dateStr = dateKey && row[dateKey] ? row[dateKey].trim() : null;
-          const price = priceKey ? parseFloat(row[priceKey]) : NaN;
-
-          if (fund && dateStr && !isNaN(price)) {
-            if (!fundMap[fund]) fundMap[fund] = {};
-            const dateObj = parseDateStr(dateStr);
-            if (dateObj) {
-              const timeKey = dateObj.getTime();
-              fundMap[fund][timeKey] = price;
-              dateSet.set(timeKey, dateObj);
-            }
+        if (fund && dateStr && !isNaN(price)) {
+          if (!fundMap[fund]) fundMap[fund] = {};
+          const dateObj = parseDateStr(dateStr);
+          if (dateObj) {
+            const timeKey = dateObj.getTime();
+            fundMap[fund][timeKey] = price;
+            dateSet.set(timeKey, dateObj);
           }
-        });
-      } else {
-        // Legacy/Triangle loader logic for lifesight_fundprices_triangle.csv format
-        rows.forEach(row => {
-          const fundKey = Object.keys(row).find(k => k.toLowerCase() === 'fund');
-          const dateKey = Object.keys(row).find(k => k.toLowerCase() === 'date');
-          const priceKey = Object.keys(row).find(k => k.toLowerCase() === 'unitprice');
-
-          const fund = fundKey && row[fundKey] ? row[fundKey].trim() : null;
-          const dateStr = dateKey && row[dateKey] ? row[dateKey].trim() : null;
-          const price = priceKey ? parseFloat(row[priceKey]) : NaN;
-
-          if (fund && dateStr && !isNaN(price)) {
-            if (!fundMap[fund]) fundMap[fund] = {};
-            const dateObj = parseDateStr(dateStr);
-            if (dateObj) {
-              const timeKey = dateObj.getTime();
-              fundMap[fund][timeKey] = price;
-              dateSet.set(timeKey, dateObj);
-            }
-          }
-        });
+        }
       }
 
       allDates = Array.from(dateSet.values()).sort((a, b) => a.getTime() - b.getTime());
@@ -723,8 +751,8 @@
       yMaxIdx = maxAvailableIdx;
       yMinIdx = Math.max(0, yMaxIdx - 23);
 
-      document.getElementById('xLockToggle').checked = true;
-      document.getElementById('yLockToggle').checked = true;
+      elements.xLockToggle.checked = true;
+      elements.yLockToggle.checked = true;
 
       setupSliders('x');
       setupSliders('y');
@@ -754,8 +782,7 @@
     }
 
     function renderFundGrid() {
-      const grid = document.getElementById('fundGrid');
-      grid.innerHTML = '';
+      const frag = document.createDocumentFragment();
       const funds = Object.keys(fundMap).sort();
 
       funds.forEach(fundName => {
@@ -764,7 +791,7 @@
 
         const tile = document.createElement('div');
         tile.className = `fund-radio-tile ${isSelected ? 'selected' : ''}`;
-        tile.title = fundName; // Hover title showing full fund name
+        tile.title = fundName;
         tile.innerHTML = `
           <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
             <input type="radio" name="fundRadio" ${isSelected ? 'checked' : ''}> 
@@ -775,15 +802,16 @@
         tile.onclick = () => {
           if (selectedFund !== fundName) {
             selectedFund = fundName;
-            document.getElementById('activeFundDisplay').innerText = selectedFund;
+            elements.activeFundDisplay.innerText = selectedFund;
             renderFundGrid();
             applyDefaultDateRanges();
           }
         };
-        grid.appendChild(tile);
+        frag.appendChild(tile);
       });
 
-      document.getElementById('activeFundDisplay').innerText = selectedFund || 'None';
+      elements.fundGrid.replaceChildren(frag);
+      elements.activeFundDisplay.innerText = selectedFund || 'None';
     }
 
     function formatYearMonth(date) {
@@ -793,13 +821,12 @@
     }
 
     function formatMMMYYYY(date) {
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      return `${months[date.getMonth()]} ${date.getFullYear()}`;
+      return `${MONTHS_SHORT[date.getMonth()]} ${date.getFullYear()}`;
     }
 
     function setupSliders(axis) {
-      const minEl = document.getElementById(`${axis}SliderMin`);
-      const maxEl = document.getElementById(`${axis}SliderMax`);
+      const minEl = (axis === 'x') ? elements.xSliderMin : elements.ySliderMin;
+      const maxEl = (axis === 'x') ? elements.xSliderMax : elements.ySliderMax;
       const minIdx = (axis === 'x') ? xMinIdx : yMinIdx;
       const maxIdx = (axis === 'x') ? xMaxIdx : yMaxIdx;
 
@@ -811,9 +838,9 @@
     }
 
     function updateSliderUI(axis) {
-      const minEl = document.getElementById(`${axis}SliderMin`);
-      const maxEl = document.getElementById(`${axis}SliderMax`);
-      const fill = document.getElementById(`${axis}SliderTrackFill`);
+      const minEl = (axis === 'x') ? elements.xSliderMin : elements.ySliderMin;
+      const maxEl = (axis === 'x') ? elements.xSliderMax : elements.ySliderMax;
+      const fill = (axis === 'x') ? elements.xSliderTrackFill : elements.ySliderTrackFill;
       const total = allDates.length > 1 ? allDates.length - 1 : 1;
 
       const leftPct = (minEl.value / total) * 100;
@@ -826,29 +853,32 @@
     function updateMonthInputsUI(axis) {
       const minIdx = (axis === 'x') ? xMinIdx : yMinIdx;
       const maxIdx = (axis === 'x') ? xMaxIdx : yMaxIdx;
-      document.getElementById(`${axis}StartMonth`).value = formatYearMonth(allDates[minIdx]);
-      document.getElementById(`${axis}EndMonth`).value = formatYearMonth(allDates[maxIdx]);
+      if (axis === 'x') {
+        elements.xStartMonth.value = formatYearMonth(allDates[minIdx]);
+        elements.xEndMonth.value = formatYearMonth(allDates[maxIdx]);
+      } else {
+        elements.yStartMonth.value = formatYearMonth(allDates[minIdx]);
+        elements.yEndMonth.value = formatYearMonth(allDates[maxIdx]);
+      }
     }
 
     function onInflationChange(val) {
       annualInflationRate = parseFloat(val) / 100;
-      document.getElementById('inflationValDisplay').innerText = parseFloat(val) === 0 ? '0.0% (Nominal)' : `${parseFloat(val).toFixed(1)}% Annual Inflation`;
+      elements.inflationValDisplay.innerText = parseFloat(val) === 0 ? '0.0% (Nominal)' : `${parseFloat(val).toFixed(1)}% Annual Inflation`;
       renderMatrix();
     }
 
     function onSyncLockToggleChange() {
-      const isSyncLocked = document.getElementById('syncLockToggle').checked;
+      const isSyncLocked = elements.syncLockToggle.checked;
       if (isSyncLocked) {
-        document.getElementById('xLockToggle').checked = true;
-        document.getElementById('yLockToggle').checked = true;
+        elements.xLockToggle.checked = true;
+        elements.yLockToggle.checked = true;
       }
     }
 
     function onAxisLockChange(axis) {
-      const xLocked = document.getElementById('xLockToggle').checked;
-      const yLocked = document.getElementById('yLockToggle').checked;
-      if (!xLocked || !yLocked) {
-        document.getElementById('syncLockToggle').checked = false;
+      if (!elements.xLockToggle.checked || !elements.yLockToggle.checked) {
+        elements.syncLockToggle.checked = false;
       }
     }
 
@@ -879,8 +909,11 @@
         yMaxIdx = newMax;
       }
 
-      document.getElementById(`${axis}SliderMin`).value = (axis === 'x') ? xMinIdx : yMinIdx;
-      document.getElementById(`${axis}SliderMax`).value = (axis === 'x') ? xMaxIdx : yMaxIdx;
+      const minEl = (axis === 'x') ? elements.xSliderMin : elements.ySliderMin;
+      const maxEl = (axis === 'x') ? elements.xSliderMax : elements.ySliderMax;
+      minEl.value = (axis === 'x') ? xMinIdx : yMinIdx;
+      maxEl.value = (axis === 'x') ? xMaxIdx : yMaxIdx;
+
       updateSliderUI(axis);
       updateMonthInputsUI(axis);
 
@@ -888,10 +921,10 @@
     }
 
     function onSliderInput(axis, changed) {
-      const minEl = document.getElementById(`${axis}SliderMin`);
-      const maxEl = document.getElementById(`${axis}SliderMax`);
-      const isAxisLocked = document.getElementById(`${axis}LockToggle`).checked;
-      const isSyncLocked = document.getElementById('syncLockToggle').checked;
+      const minEl = (axis === 'x') ? elements.xSliderMin : elements.ySliderMin;
+      const maxEl = (axis === 'x') ? elements.xSliderMax : elements.ySliderMax;
+      const isAxisLocked = (axis === 'x') ? elements.xLockToggle.checked : elements.yLockToggle.checked;
+      const isSyncLocked = elements.syncLockToggle.checked;
 
       let oldMin = (axis === 'x') ? xMinIdx : yMinIdx;
       let valMin = parseInt(minEl.value);
@@ -922,12 +955,12 @@
     }
 
     function onManualMonthChange(axis) {
-      const startVal = document.getElementById(`${axis}StartMonth`).value;
-      const endVal = document.getElementById(`${axis}EndMonth`).value;
+      const startVal = (axis === 'x') ? elements.xStartMonth.value : elements.yStartMonth.value;
+      const endVal = (axis === 'x') ? elements.xEndMonth.value : elements.yEndMonth.value;
       if (!startVal || !endVal) return;
 
-      const isAxisLocked = document.getElementById(`${axis}LockToggle`).checked;
-      const isSyncLocked = document.getElementById('syncLockToggle').checked;
+      const isAxisLocked = (axis === 'x') ? elements.xLockToggle.checked : elements.yLockToggle.checked;
+      const isSyncLocked = elements.syncLockToggle.checked;
 
       const [sY, sM] = startVal.split('-').map(Number);
       const [eY, eM] = endVal.split('-').map(Number);
@@ -952,8 +985,11 @@
           if (axis === 'x') { xMinIdx = newMin; xMaxIdx = newMax; }
           else { yMinIdx = newMin; yMaxIdx = newMax; }
 
-          document.getElementById(`${axis}SliderMin`).value = newMin;
-          document.getElementById(`${axis}SliderMax`).value = newMax;
+          const minEl = (axis === 'x') ? elements.xSliderMin : elements.ySliderMin;
+          const maxEl = (axis === 'x') ? elements.xSliderMax : elements.ySliderMax;
+          minEl.value = newMin;
+          maxEl.value = newMax;
+
           updateSliderUI(axis);
           updateMonthInputsUI(axis);
         }
@@ -1032,14 +1068,22 @@
       const xDates = allDates.slice(xMinIdx, xMaxIdx + 1);
       const yDates = allDates.slice(yMinIdx, yMaxIdx + 1);
 
-      const headerRow = document.getElementById('matrixHeaderRow');
-      headerRow.innerHTML = '<th class="first-col-header">Date</th>';
-      xDates.forEach((d, colIdx) => {
-        headerRow.innerHTML += `<th data-col="${colIdx}">${formatYearMonth(d)}</th>`;
-      });
+      // Formulate headers faster via DocumentFragment
+      const headerRowFrag = document.createDocumentFragment();
+      const firstTh = document.createElement('th');
+      firstTh.className = 'first-col-header';
+      firstTh.innerText = 'Date';
+      headerRowFrag.appendChild(firstTh);
 
-      const body = document.getElementById('matrixBody');
-      body.innerHTML = '';
+      xDates.forEach((d, colIdx) => {
+        const th = document.createElement('th');
+        th.dataset.col = colIdx;
+        th.innerText = formatYearMonth(d);
+        headerRowFrag.appendChild(th);
+      });
+      elements.matrixHeaderRow.replaceChildren(headerRowFrag);
+
+      const bodyFrag = document.createDocumentFragment();
 
       let validCells = [];
       let highestCell = null;
@@ -1047,16 +1091,20 @@
       let positiveCount = 0;
       let sumReturn = 0;
 
+      // Pre-calculate array of formatted dates to avoid recalculating in loop
+      const xFormatted = xDates.map(d => formatYearMonth(d));
+
       yDates.forEach((yD, rowIdx) => {
         const yTime = yD.getTime();
         const yPrice = prices[yTime];
+        const evalKey = formatYearMonth(yD);
 
-        let tr = document.createElement('tr');
+        const tr = document.createElement('tr');
         
         const rowHeaderTd = document.createElement('td');
         rowHeaderTd.className = 'row-header';
         rowHeaderTd.dataset.row = rowIdx;
-        rowHeaderTd.innerText = formatYearMonth(yD);
+        rowHeaderTd.innerText = evalKey;
         tr.appendChild(rowHeaderTd);
 
         xDates.forEach((xD, colIdx) => {
@@ -1081,19 +1129,24 @@
 
             const displayValPct = realPct;
             const style = getCellColor(displayValPct);
-            const durationStr = calculateDuration(xD, yD);
-            const buyKey = formatYearMonth(xD);
-            const evalKey = formatYearMonth(yD);
+            const buyKey = xFormatted[colIdx];
             const hasMarketEvent = Boolean(marketEvents[evalKey]);
 
             const td = document.createElement('td');
             td.className = `matrix-cell${hasMarketEvent ? ' has-event' : ''}`;
             td.dataset.row = rowIdx;
             td.dataset.col = colIdx;
+            td.dataset.xPrice = xPrice;
+            td.dataset.yPrice = yPrice;
+            td.dataset.nominal = nominalPct;
+            td.dataset.real = realPct;
+            td.dataset.years = years;
+            td.dataset.xTime = xTime;
+            td.dataset.yTime = yTime;
+
             td.style.backgroundColor = style.bg;
             td.style.color = style.text;
 
-            // Render Text depending on View Mode (£ vs %)
             if (isMonetaryView) {
               const g1000 = 1000 * (1 + (displayValPct / 100));
               td.innerText = `£${Math.round(g1000)}`;
@@ -1106,35 +1159,53 @@
             sumReturn += activePct;
             if (activePct >= 0) positiveCount++;
 
-            const cellInfo = { val: activePct, nominal: nominalPct, real: realPct, buy: formatYearMonth(xD), eval: formatYearMonth(yD) };
+            const cellInfo = { val: activePct, nominal: nominalPct, real: realPct, buy: buyKey, eval: evalKey };
             if (!highestCell || activePct > highestCell.val) highestCell = cellInfo;
             if (!lowestCell || activePct < lowestCell.val) lowestCell = cellInfo;
-
-            // Hover Tooltip with Market Milestones
-            td.onmouseenter = (e) => {
-              showCellTooltip(e, xD, yD, xPrice, yPrice, nominalPct, realPct, durationStr, years);
-              highlightRay(rowIdx, colIdx);
-            };
-            td.onmousemove = (e) => moveCellTooltip(e);
-            td.onmouseleave = () => {
-              hideCellTooltip();
-              clearRayHighlight();
-            };
 
             tr.appendChild(td);
           }
         });
 
-        body.appendChild(tr);
+        bodyFrag.appendChild(tr);
       });
 
+      elements.matrixBody.replaceChildren(bodyFrag);
       updateSummaryMetrics(validCells, highestCell, lowestCell, sumReturn, positiveCount, xDates, yDates);
+    }
+
+    // Delegation handler for mouseover on matrix cells
+    function handleMatrixMouseOver(e) {
+      const cell = e.target.closest('td.matrix-cell');
+      if (!cell) return;
+
+      const rowIdx = cell.dataset.row;
+      const colIdx = cell.dataset.col;
+      const xD = new Date(parseInt(cell.dataset.xTime));
+      const yD = new Date(parseInt(cell.dataset.yTime));
+      const xPrice = parseFloat(cell.dataset.xPrice);
+      const yPrice = parseFloat(cell.dataset.yPrice);
+      const nominalPct = parseFloat(cell.dataset.nominal);
+      const realPct = parseFloat(cell.dataset.real);
+      const years = parseFloat(cell.dataset.years);
+
+      const durationStr = calculateDuration(xD, yD);
+      showCellTooltip(e, xD, yD, xPrice, yPrice, nominalPct, realPct, durationStr, years);
+      highlightRay(rowIdx, colIdx);
+    }
+
+    function handleMatrixMouseOut(e) {
+      const cell = e.target.closest('td.matrix-cell');
+      if (cell) {
+        hideCellTooltip();
+        clearRayHighlight();
+      }
     }
 
     function highlightRay(rowIdx, colIdx) {
       clearRayHighlight();
 
-      const table = document.getElementById('matrixTable');
+      const table = elements.matrixTable;
       
       const th = table.querySelector(`th[data-col="${colIdx}"]`);
       if (th) th.classList.add('highlight-header');
@@ -1153,7 +1224,7 @@
     }
 
     function clearRayHighlight() {
-      const table = document.getElementById('matrixTable');
+      const table = elements.matrixTable;
       table.querySelectorAll('.highlight-header').forEach(el => el.classList.remove('highlight-header'));
       table.querySelectorAll('.highlight-col').forEach(el => el.classList.remove('highlight-col'));
       table.querySelectorAll('.highlight-row').forEach(el => el.classList.remove('highlight-row'));
@@ -1166,30 +1237,29 @@
       const infSuffix = isInf ? ` (Real)` : ' (Nominal)';
 
       if (total === 0) {
-        document.getElementById('metricHighest').innerText = '-';
-        document.getElementById('metricLowest').innerText = '-';
-        document.getElementById('metricAvg').innerText = '-';
-        document.getElementById('metricPosNeg').innerText = '-';
-        document.getElementById('metricCashBenchmark').innerText = '-';
+        elements.metricHighest.innerText = '-';
+        elements.metricLowest.innerText = '-';
+        elements.metricAvg.innerText = '-';
+        elements.metricPosNeg.innerText = '-';
+        elements.metricCashBenchmark.innerText = '-';
         return;
       }
 
-      document.getElementById('metricHighest').innerText = isMonetaryView ? `£${Math.round(1000 * (1 + (highest.val / 100)))}` : `${highest.val >= 0 ? '+' : ''}${highest.val.toFixed(2)}%`;
-      document.getElementById('metricHighestSub').innerText = `Buy: ${highest.buy} | Eval: ${highest.eval}${infSuffix}`;
+      elements.metricHighest.innerText = isMonetaryView ? `£${Math.round(1000 * (1 + (highest.val / 100)))}` : `${highest.val >= 0 ? '+' : ''}${highest.val.toFixed(2)}%`;
+      elements.metricHighestSub.innerText = `Buy: ${highest.buy} | Eval: ${highest.eval}${infSuffix}`;
 
-      document.getElementById('metricLowest').innerText = isMonetaryView ? `£${Math.round(1000 * (1 + (lowest.val / 100)))}` : `${lowest.val >= 0 ? '+' : ''}${lowest.val.toFixed(2)}%`;
-      document.getElementById('metricLowestSub').innerText = `Buy: ${lowest.buy} | Eval: ${lowest.eval}${infSuffix}`;
+      elements.metricLowest.innerText = isMonetaryView ? `£${Math.round(1000 * (1 + (lowest.val / 100)))}` : `${lowest.val >= 0 ? '+' : ''}${lowest.val.toFixed(2)}%`;
+      elements.metricLowestSub.innerText = `Buy: ${lowest.buy} | Eval: ${lowest.eval}${infSuffix}`;
 
       const avg = sumReturn / total;
-      document.getElementById('metricAvg').innerText = isMonetaryView ? `£${Math.round(1000 * (1 + (avg / 100)))}` : `${avg >= 0 ? '+' : ''}${avg.toFixed(2)}%`;
-      document.getElementById('metricAvgSub').innerText = `Across ${total} visible cells${infSuffix}`;
+      elements.metricAvg.innerText = isMonetaryView ? `£${Math.round(1000 * (1 + (avg / 100)))}` : `${avg >= 0 ? '+' : ''}${avg.toFixed(2)}%`;
+      elements.metricAvgSub.innerText = `Across ${total} visible cells${infSuffix}`;
 
       const posPct = ((positiveCount / total) * 100).toFixed(1);
       const negCount = total - positiveCount;
-      document.getElementById('metricPosNeg').innerText = `${posPct}% Positive`;
-      document.getElementById('metricPosNegSub').innerText = `${positiveCount} Gain / ${negCount} Loss cells`;
+      elements.metricPosNeg.innerText = `${posPct}% Positive`;
+      elements.metricPosNegSub.innerText = `${positiveCount} Gain / ${negCount} Loss cells`;
 
-      // Cash Benchmark Calculation (Assuming 3% p.a. cash interest baseline)
       if (xDates.length > 0 && yDates.length > 0) {
         const start = xDates[0];
         const end = yDates[yDates.length - 1];
@@ -1198,22 +1268,19 @@
         const cashReturnPct = (Math.pow(1.03, years) - 1) * 100;
         const cashGrowth = 1000 * (1 + (cashReturnPct / 100));
 
-        document.getElementById('metricCashBenchmark').innerText = isMonetaryView ? `£${Math.round(cashGrowth)}` : `+${cashReturnPct.toFixed(1)}%`;
-        document.getElementById('metricCashSub').innerText = `Based on 3% p.a. cash savings over ${years.toFixed(1)} yrs`;
+        elements.metricCashBenchmark.innerText = isMonetaryView ? `£${Math.round(cashGrowth)}` : `+${cashReturnPct.toFixed(1)}%`;
+        elements.metricCashSub.innerText = `Based on 3% p.a. cash savings over ${years.toFixed(1)} yrs`;
       }
     }
 
-    const tooltip = document.getElementById('matrixCellTooltip');
-
     function showCellTooltip(e, xD, yD, xPrice, yPrice, nominalPct, realPct, durationStr, years) {
       const monetaryValue = 1000 * (1 + (realPct / 100));
-      const buyKey = formatYearMonth(xD);
       const evalKey = formatYearMonth(yD);
       
       let eventNotice = '';
       if (marketEvents[evalKey]) eventNotice += `<div>${marketEvents[evalKey]}</div>`;
 
-      tooltip.innerHTML = `
+      elements.matrixCellTooltip.innerHTML = `
         <div class="tooltip-title">${selectedFund}</div>
         <div class="tooltip-row"><span class="tooltip-label">Buy Month:</span><span class="tooltip-val">${formatMMMYYYY(xD)}</span></div>
         <div class="tooltip-row"><span class="tooltip-label">Evaluation Month:</span><span class="tooltip-val">${formatMMMYYYY(yD)}</span></div>
@@ -1225,28 +1292,29 @@
         <div class="tooltip-row"><span class="tooltip-label">Real Return (${(annualInflationRate * 100).toFixed(1)}% Inf.):</span><span class="tooltip-val" style="color: ${realPct >= 0 ? '#10b981' : '#ef4444'};">${realPct >= 0 ? '+' : ''}${realPct.toFixed(2)}%</span></div>
         ${eventNotice ? `<div class="tooltip-event">${eventNotice}</div>` : ''}
       `;
-      tooltip.style.display = 'block';
+      elements.matrixCellTooltip.style.display = 'block';
       moveCellTooltip(e);
     }
 
     function moveCellTooltip(e) {
+      if (elements.matrixCellTooltip.style.display !== 'block') return;
       const padding = 15;
       let left = e.clientX + padding;
       let top = e.clientY + padding;
 
-      if (left + tooltip.offsetWidth > window.innerWidth - 10) {
-        left = e.clientX - tooltip.offsetWidth - padding;
+      if (left + elements.matrixCellTooltip.offsetWidth > window.innerWidth - 10) {
+        left = e.clientX - elements.matrixCellTooltip.offsetWidth - padding;
       }
-      if (top + tooltip.offsetHeight > window.innerHeight - 10) {
-        top = e.clientY - tooltip.offsetHeight - padding;
+      if (top + elements.matrixCellTooltip.offsetHeight > window.innerHeight - 10) {
+        top = e.clientY - elements.matrixCellTooltip.offsetHeight - padding;
       }
 
-      tooltip.style.left = `${left}px`;
-      tooltip.style.top = `${top}px`;
+      elements.matrixCellTooltip.style.left = `${left}px`;
+      elements.matrixCellTooltip.style.top = `${top}px`;
     }
 
     function hideCellTooltip() {
-      tooltip.style.display = 'none';
+      elements.matrixCellTooltip.style.display = 'none';
     }
 
     function exportMatrix(format) {
@@ -1267,7 +1335,7 @@
     }
 
     function exportCSV(filename) {
-      const table = document.getElementById('matrixTable');
+      const table = elements.matrixTable;
       let csv = [];
       for (let row of table.rows) {
         let rowData = [];
@@ -1285,7 +1353,7 @@
     }
 
     function exportExcel(filename) {
-      const table = document.getElementById('matrixTable');
+      const table = elements.matrixTable;
       const wb = XLSX.utils.table_to_book(table, { sheet: "Return Matrix" });
       XLSX.writeFile(wb, filename);
     }
