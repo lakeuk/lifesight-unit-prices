@@ -53,7 +53,7 @@
     body { background-color: var(--bg-color); color: var(--text-main); padding: 12px; display: flex; flex-direction: column; gap: 12px; min-height: 100vh; transition: background-color 0.2s, color 0.2s; }
 
     /* Dashboard Card Wrapper */
-    .dashboard-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+    .dashboard-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); flex-grow: 1; }
 
     /* Top Action Bar */
     .top-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
@@ -127,7 +127,7 @@
       color: var(--text-main);
       border: 1px solid var(--border-color);
       border-radius: 8px;
-      max-width: 620px;
+      max-width: 800px;
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
@@ -137,6 +137,12 @@
       flex-direction: column;
       gap: 14px;
     }
+    
+    /* Increased Fund Selector modal max-width by > 33% (800px -> 1100px) */
+    #fundModal .modal-content {
+      max-width: 1100px;
+    }
+
     .modal-header {
       display: flex;
       justify-content: space-between;
@@ -158,7 +164,11 @@
     .preset-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
 
     /* Matrix Container & Table */
-    .matrix-scroll-wrapper { width: 100%; overflow: auto; max-height: 520px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); position: relative; }
+    .matrix-container-relative {
+      position: relative;
+      width: 100%;
+    }
+    .matrix-scroll-wrapper { width: 100%; overflow: auto; min-height: 250px; max-height: 520px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); position: relative; }
     .matrix-table { border-collapse: separate; border-spacing: 0; font-size: 0.72rem; text-align: right; width: 100%; }
     .matrix-table th, .matrix-table td { padding: 4px 6px; border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); white-space: nowrap; font-weight: 500; }
     
@@ -200,28 +210,38 @@
       z-index: 5;
     }
 
-    /* Summary Metrics Bar */
+    /* Condensed Portrait Summary Metrics Bar (Overlay) */
     .summary-metrics-bar {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
-      background: var(--input-bg);
+      display: none;
+      position: absolute;
+      top: 32px;
+      right: 22px;
+      z-index: 10;
+      width: 220px;
+      flex-direction: column;
+      gap: 6px;
+      background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      padding: 12px;
+      padding: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(4px);
+    }
+    .summary-metrics-bar.active {
+      display: flex;
     }
     .metric-card {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      padding: 8px 10px;
-      background: var(--card-bg);
+      gap: 2px;
+      padding: 5px 8px;
+      background: var(--input-bg);
       border: 1px solid var(--border-color);
-      border-radius: 5px;
+      border-radius: 4px;
     }
-    .metric-title { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-    .metric-value { font-size: 0.95rem; font-weight: 700; color: var(--text-main); }
-    .metric-sub { font-size: 0.68rem; color: var(--text-muted); }
+    .metric-title { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+    .metric-value { font-size: 0.85rem; font-weight: 700; color: var(--text-main); }
+    .metric-sub { font-size: 0.62rem; color: var(--text-muted); }
 
     /* Interactive Hover Tooltip */
     #matrixCellTooltip {
@@ -273,19 +293,46 @@
       height: 16px; width: 16px; border-radius: 50%; background: #ffffff; border: 2px solid var(--accent-blue); cursor: pointer; pointer-events: auto; -moz-appearance: none; box-shadow: 0 1px 3px rgba(0,0,0,0.3); box-sizing: border-box;
     }
 
-    /* Single Selection Radio Fund Selector */
-    .fund-selector-section { display: flex; flex-direction: column; gap: 8px; background: var(--input-bg); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); }
-    .fund-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; max-height: 140px; overflow-y: auto; }
-    .fund-radio-tile { 
-      padding: 6px 10px; background-color: var(--tile-inactive-bg); color: var(--tile-inactive-text); border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.78rem; font-weight: 600; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; transition: all 0.15s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    /* Modal Fund Selector Styles */
+    .fund-modal-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .search-input { padding: 6px 10px; font-size: 0.8rem; border: 1px solid var(--border-color); border-radius: 5px; background: var(--input-bg); color: var(--text-main); flex-grow: 1; outline: none; }
+
+    /* Updated to wider grid columns to accommodate full fund names */
+    .fund-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+    
+    /* Text Push Button Component for Funds */
+    .fund-text-btn { 
+      padding: 10px 14px; 
+      background-color: var(--admin-bg, var(--tile-inactive-bg)); 
+      color: #0f172a; 
+      border: 1px solid var(--border-color); 
+      border-left: 6px solid var(--admin-border, var(--accent-blue)); 
+      border-radius: 6px; 
+      font-size: 0.8rem; 
+      font-weight: 600; 
+      cursor: pointer; 
+      user-select: none; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 12px; 
+      transition: all 0.15s ease;
+      text-align: left;
+      outline: none;
     }
-    .fund-radio-tile:hover { filter: brightness(0.95); }
-    .fund-radio-tile.selected { background-color: var(--card-bg); color: var(--text-main); border-color: var(--accent-blue); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 700; }
-    .risk-badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: 700; flex-shrink: 0; }
+    body.dark-mode .fund-text-btn { color: #0f172a; }
+    .fund-text-btn:hover { filter: brightness(0.95); transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+    .fund-text-btn.selected { 
+      border-color: var(--accent-blue); 
+      border-left-color: var(--accent-blue); 
+      box-shadow: 0 0 0 2px var(--accent-blue); 
+      font-weight: 700; 
+    }
+    .risk-badge { font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; font-weight: 700; flex-shrink: 0; }
     .risk-low { background: #dcfce7; color: #15803d; }
     .risk-med { background: #fef9c3; color: #a16207; }
     .risk-high { background: #fee2e2; color: #b91c1c; }
-    .fund-risk-disclaimer { font-size: 0.73rem; color: var(--text-muted); line-height: 1.35; margin-top: 2px; }
+    .fund-risk-disclaimer { font-size: 0.73rem; color: var(--text-muted); line-height: 1.35; margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -295,9 +342,12 @@
     <div class="top-toolbar">
       <div class="toolbar-left">
         <button id="darkModeToggle" class="btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
-        
+
         <!-- Guided Tour Trigger -->
         <button class="btn btn-active" onclick="startGuidedTour()">🚀 How to Read</button>
+
+        <!-- Metrics Bar Toggle Button -->
+        <button id="metricsToggleBtn" class="btn" onclick="toggleSummaryMetricsBar()">📊 Summary Metrics</button>
 
         <!-- Display Mode Toggle -->
         <button id="viewModeBtn" class="btn" onclick="toggleViewMode()">💷 View Mode: % Return</button>
@@ -308,12 +358,14 @@
           <option value="viridis">🎨 Palette: Viridis</option>
           <option value="monochrome">🎨 Palette: High-Contrast</option>
         </select>
-
         <div class="file-dropzone" id="dropzone">
-          <span id="fileStatus">📁 Drag & drop <strong>lifesight_fundprices.csv</strong> or <strong>lifesight_fundprices_triangle.csv</strong></span>
-          <label for="csvFileInput">Browse File</label>
-          <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
+          <span id="fileStatus">📁 Drag & drop one or multiple <strong>.csv</strong> files</span>
+          <label for="csvFileInput">Browse Files</label>
+          <input type="file" id="csvFileInput" accept=".csv" multiple onchange="handleFileSelect(event)">
         </div>
+
+        <!-- Fund Selector Trigger Button -->
+        <button class="btn btn-active" onclick="toggleFundModal(true)">🎯 Fund Selector</button>
 
         <!-- Export Matrix Dropdown -->
         <div class="export-dropdown-container">
@@ -325,53 +377,56 @@
           </div>
         </div>
       </div>
-
+    </div>
       <div>
         <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Selected Fund: </span>
         <strong id="activeFundDisplay" style="font-size: 0.85rem; color: var(--accent-blue);">None</strong>
       </div>
-    </div>
 
-    <!-- Dynamic Return Matrix Table -->
-    <div class="matrix-scroll-wrapper" id="matrixWrapper">
-      <table class="matrix-table" id="matrixTable">
-        <thead>
-          <tr id="matrixHeaderRow">
-            <th class="first-col-header">Date</th>
-          </tr>
-        </thead>
-        <tbody id="matrixBody">
-          <tr><td style="text-align: center; padding: 20px;" colspan="100">Please load dataset...</td></tr>
-        </tbody>
-      </table>
-    </div>
 
-    <!-- UI Summary Metrics Bar -->
-    <div class="summary-metrics-bar" id="summaryMetricsBar">
-      <div class="metric-card">
-        <span class="metric-title">Highest Return</span>
-        <span class="metric-value" id="metricHighest">-</span>
-        <span class="metric-sub" id="metricHighestSub">Buy: - | Eval: -</span>
+    <!-- Matrix Relative Container -->
+    <div class="matrix-container-relative">
+      <!-- Dynamic Return Matrix Table -->
+      <div class="matrix-scroll-wrapper" id="matrixWrapper">
+        <table class="matrix-table" id="matrixTable">
+          <thead>
+            <tr id="matrixHeaderRow">
+              <th class="first-col-header">Date</th>
+            </tr>
+          </thead>
+          <tbody id="matrixBody">
+            <tr><td style="text-align: center; padding: 20px;" colspan="100">Please load dataset...</td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="metric-card">
-        <span class="metric-title">Lowest Return</span>
-        <span class="metric-value" id="metricLowest">-</span>
-        <span class="metric-sub" id="metricLowestSub">Buy: - | Eval: -</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-title">Average Return</span>
-        <span class="metric-value" id="metricAvg">-</span>
-        <span class="metric-sub" id="metricAvgSub">Across visible grid</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-title">Win / Loss Ratio</span>
-        <span class="metric-value" id="metricPosNeg">-</span>
-        <span class="metric-sub" id="metricPosNegSub">Positive vs. Negative</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-title">Cash Baseline (3% p.a.)</span>
-        <span class="metric-value" id="metricCashBenchmark">-</span>
-        <span class="metric-sub" id="metricCashSub">Est. Cash Savings Growth</span>
+
+      <!-- UI Summary Metrics Bar (Overlay) -->
+      <div class="summary-metrics-bar" id="summaryMetricsBar">
+        <div class="metric-card">
+          <span class="metric-title">Highest Return</span>
+          <span class="metric-value" id="metricHighest">-</span>
+          <span class="metric-sub" id="metricHighestSub">Buy: - | Eval: -</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Lowest Return</span>
+          <span class="metric-value" id="metricLowest">-</span>
+          <span class="metric-sub" id="metricLowestSub">Buy: - | Eval: -</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Average Return</span>
+          <span class="metric-value" id="metricAvg">-</span>
+          <span class="metric-sub" id="metricAvgSub">Across visible grid</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Win / Loss Ratio</span>
+          <span class="metric-value" id="metricPosNeg">-</span>
+          <span class="metric-sub" id="metricPosNegSub">Positive vs. Negative</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Cash Baseline (3% p.a.)</span>
+          <span class="metric-value" id="metricCashBenchmark">-</span>
+          <span class="metric-sub" id="metricCashSub">Est. Cash Savings Growth</span>
+        </div>
       </div>
     </div>
 
@@ -435,7 +490,7 @@
     </div>
 
     <!-- Master Lock Option & Preset Timeframe Bar -->
-    <div class="master-lock-bar">
+    <div class="master-lock-bar" id="masterLockBar">
       <label class="master-lock-label">
         <input type="checkbox" id="syncLockToggle" onchange="onSyncLockToggleChange()">
         <span>🔗 Synchronize both axes (Lock & Move Horizontal & Vertical together)</span>
@@ -449,13 +504,28 @@
         <button class="btn" onclick="applyPresetSpan(60)">5Y</button>
       </div>
     </div>
+  </div>
 
-    <!-- Strict Single Selection Fund Picker -->
-    <div class="fund-selector-section">
-      <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Select Fund (Single Choice):</span>
-      <div id="fundGrid" class="fund-grid"></div>
-      <div class="fund-risk-disclaimer">
-        <em>Note: Risk badges (Low, Med, High) indicate general asset type (e.g., Cash is Low, Bonds are Medium, Equities are High) and do not reflect specific risk ratings for individual funds. Please consult each fund's official Factsheet for full risk details.</em>
+  <!-- Dedicated Modal Fund Selector -->
+  <div id="fundModal" class="modal-overlay" onclick="if(event.target===this) toggleFundModal(false)">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">🎯 Fund Selector & Filter</span>
+        <button class="modal-close" onclick="toggleFundModal(false)">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="fund-modal-toolbar">
+          <select id="adminFilterSelect" class="select-control" onchange="filterFundGrid()">
+            <option value="ALL">All Administrators</option>
+          </select>
+          <input type="text" id="fundSearchInput" class="search-input" placeholder="Search fund name..." oninput="filterFundGrid()">
+        </div>
+
+        <div id="fundGrid" class="fund-grid"></div>
+
+        <div class="fund-risk-disclaimer">
+          <em>Note: Buttons are pastel color-coded by Administrator (LifeSight default funds highlighted in Gold). Left borders signify asset class. Risk badges indicate general asset type and do not reflect official Factsheet risk ratings.</em>
+        </div>
       </div>
     </div>
   </div>
@@ -471,39 +541,36 @@
         <button class="modal-close" onclick="toggleInfoModal(false)">&times;</button>
       </div>
       <div class="modal-body" id="modalBodyContent">
-        <div>
-          <div class="modal-section-title">How to Use the App</div>
-          <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
-            <li><strong>Load CSV dataset:</strong> Supports both <code>lifesight_fundprices.csv</code> (long timeseries format) and <code>lifesight_fundprices_triangle.csv</code>.</li>
-            <li><strong>Select a Fund:</strong> Choose a single fund tile at the bottom to load its return matrix.</li>
-            <li><strong>Display Mode:</strong> Switch between percentage returns (%) or growth of a £1,000 investment (£).</li>
-            <li><strong>Preset Timeframes:</strong> Click 1Y, 3Y, or 5Y for instant date range adjustments.</li>
-            <li><strong>Inflation Adjustment:</strong> Move the Inflation Rate slider to recalculate real returns against purchasing power.</li>
-            <li><strong>Market Events:</strong> Hover over cells (marked with a gold dot) to see major market context markers (e.g. COVID drop).</li>
-          </ul>
-        </div>
-
-        <div class="modal-disclaimer">
-          <strong>⚠️ Disclaimer:</strong> Data points represent fund prices at a single point in the month and do not reflect the exact day of the month a member's contribution is executed by the administrator.
-        </div>
-
-        <div style="font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 8px;">
-          Provided by <strong>Dave Whitehead</strong>. Updates available at: <a href="https://github.com/lakeuk/lifesight-unit-prices" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">https://github.com/lakeuk/lifesight-unit-prices</a>
-        </div>
       </div>
     </div>
   </div>
 
   <script>
     let fundMap = {};       
+    let fundAdminMap = {};
     let allDates = [];      
     let selectedFund = null;
     let isDarkMode = false;
     let annualInflationRate = 0.00;
     let activePalette = 'classic';
     let isMonetaryView = false; // % vs £1,000 growth
+    let isMetricsBarVisible = false;
 
-    // Cache static month names to avoid re-creation
+    // Pastel palette map for administrators
+    const adminColorMap = {
+      'LifeSight': { bg: '#fed7aa', border: '#eab308' }, // Highlighted yellow/gold
+      'BlackRock': { bg: '#e0f2fe', border: '#0284c7' },
+      'L&G': { bg: '#dcfce7', border: '#16a34a' },
+      'HSBC': { bg: '#ffe4e6', border: '#e11d48' },
+      'Schroders': { bg: '#f3e8ff', border: '#9333ea' },
+      'Fidelity': { bg: '#ffedd5', border: '#ea580c' },
+      'Vanguard': { bg: '#bfdbfe', border: '#ea580c' },
+      'ishare': { bg: '#bbf7d0', border: '#ea580c' },   
+      'invesco': { bg: '#e9d5ff', border: '#ea580c' }, 
+      'Default': { bg: '#f1f5f9', border: '#64748b' }
+    };
+
+    // Cache static month names
     const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     // Market Milestones Map
@@ -532,19 +599,25 @@
     let elements = {};
 
     window.addEventListener('DOMContentLoaded', () => {
-      // Cache DOM references
       elements = {
         matrixTable: document.getElementById('matrixTable'),
         matrixHeaderRow: document.getElementById('matrixHeaderRow'),
         matrixBody: document.getElementById('matrixBody'),
+        matrixWrapper: document.getElementById('matrixWrapper'),
+        masterLockBar: document.getElementById('masterLockBar'),
         matrixCellTooltip: document.getElementById('matrixCellTooltip'),
+        summaryMetricsBar: document.getElementById('summaryMetricsBar'),
+        metricsToggleBtn: document.getElementById('metricsToggleBtn'),
         activeFundDisplay: document.getElementById('activeFundDisplay'),
         fileStatus: document.getElementById('fileStatus'),
         darkModeToggle: document.getElementById('darkModeToggle'),
         viewModeBtn: document.getElementById('viewModeBtn'),
         infoModal: document.getElementById('infoModal'),
+        fundModal: document.getElementById('fundModal'),
         modalBodyContent: document.getElementById('modalBodyContent'),
         fundGrid: document.getElementById('fundGrid'),
+        adminFilterSelect: document.getElementById('adminFilterSelect'),
+        fundSearchInput: document.getElementById('fundSearchInput'),
         inflationValDisplay: document.getElementById('inflationValDisplay'),
         xLockToggle: document.getElementById('xLockToggle'),
         yLockToggle: document.getElementById('yLockToggle'),
@@ -572,10 +645,13 @@
         dropzone: document.getElementById('dropzone')
       };
 
-      // Set up Event Delegation for Matrix Body (Replaces per-cell listener creation)
+      // Set up Event Delegation for Matrix Body
       elements.matrixBody.addEventListener('mouseover', handleMatrixMouseOver);
       elements.matrixBody.addEventListener('mousemove', moveCellTooltip);
       elements.matrixBody.addEventListener('mouseout', handleMatrixMouseOut);
+
+      // Listen for window resizes to automatically stretch Matrix height to fit screen space
+      window.addEventListener('resize', adjustMatrixHeight);
 
       // Drag and Drop
       const dropzone = elements.dropzone;
@@ -584,7 +660,7 @@
       dropzone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropzone.style.borderColor = 'var(--border-color)';
-        if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files);
       });
 
       // Try loading triangle format first, fallback to standard long format
@@ -596,16 +672,37 @@
             .then(res => { if (!res.ok) throw new Error(); return res.text(); })
             .then(csvText => parseAndInitData(csvText))
             .catch(() => {
-              elements.fileStatus.innerHTML = "📁 Drag & drop <strong>lifesight_fundprices.csv</strong> or <strong>lifesight_fundprices_triangle.csv</strong>";
+              elements.fileStatus.innerHTML = "📁 Drag & drop <strong>.csv</strong> files";
+              adjustMatrixHeight();
             });
         });
     });
+
+    /* Function to dynamically increase matrix chart max-height based on remaining screen space */
+    function adjustMatrixHeight() {
+      if (!elements.masterLockBar || !elements.matrixWrapper) return;
+      
+      const lockBarRect = elements.masterLockBar.getBoundingClientRect();
+      const availableSpaceBelow = window.innerHeight - lockBarRect.top - 20;
+
+      if (availableSpaceBelow > 0) {
+        const currentWrapperHeight = elements.matrixWrapper.offsetHeight;
+        const newMaxHeight = Math.max(300, currentWrapperHeight + availableSpaceBelow);
+        elements.matrixWrapper.style.maxHeight = `${newMaxHeight}px`;
+      }
+    }
 
     function toggleDarkMode() {
       isDarkMode = !isDarkMode;
       document.body.classList.toggle('dark-mode', isDarkMode);
       elements.darkModeToggle.innerText = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
       renderMatrix();
+    }
+
+    function toggleSummaryMetricsBar() {
+      isMetricsBarVisible = !isMetricsBarVisible;
+      elements.summaryMetricsBar.classList.toggle('active', isMetricsBarVisible);
+      elements.metricsToggleBtn.classList.toggle('btn-active', isMetricsBarVisible);
     }
 
     function toggleViewMode() {
@@ -620,53 +717,73 @@
     }
 
     function toggleInfoModal(show) {
-      if (show) elements.infoModal.classList.add('active');
-      else elements.infoModal.classList.remove('active');
+      elements.infoModal.classList.toggle('active', show);
+    }
+
+    function toggleFundModal(show) {
+      elements.fundModal.classList.toggle('active', show);
     }
 
     function startGuidedTour() {
       elements.modalBodyContent.innerHTML = `
         <div style="font-weight: 700; font-size: 1rem; color: var(--accent-blue);">🚀 How to Read a Triangular Matrix</div>
         <p>Triangular matrices display fund returns across <strong>every possible buy and sell combination</strong>.</p>
+        
         <ol style="padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
           <li><strong>Horizontal Axis (Top):</strong> Represents the month you bought or started contributing to the fund.</li>
           <li><strong>Vertical Axis (Left):</strong> Represents the month you evaluated or sold the investment.</li>
           <li><strong>Intersection Cell:</strong> Intersecting any row and column shows your return performance over that precise period.</li>
-          <li><strong>Market Events:</strong> Cells with a gold dot in the top-left indicate key market events occurred during the start or end month.</li>
-          <li><strong>Hovering:</strong> Hover over any cell to see monetary growth (£1,000 baseline), holding duration, real inflation returns, and market event context.</li>
+          <li><strong>Crosshair Highlighting:</strong> Hovering over any cell highlights the entire row and column ray for easier reading.</li>
+          <li><strong>Market Events:</strong> Cells marked with a gold dot in the top-left indicate key historical market events (e.g., COVID-19 drop).</li>
+          <li><strong>Hover Details:</strong> Hover over a cell to see £1,000 baseline growth, exact duration, unit prices, and inflation-adjusted real returns.</li>
         </ol>
-          <div style="font-weight: 700; font-size: 1rem; color: var(--accent-blue);">🖱️ How to Use the App</div>
-          <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
-            <li><strong>Load CSV dataset:</strong> Supports both <code>lifesight_fundprices.csv</code> and <code>lifesight_fundprices_triangle.csv</code>.</li>
-            <li><strong>Select a Fund:</strong> Choose a single fund tile at the bottom to load its return matrix.</li>
-            <li><strong>Display Mode:</strong> Switch between percentage returns (%) or growth of a £1,000 investment (£).</li>
-            <li><strong>Preset Timeframes:</strong> Click 1Y, 3Y, or 5Y for instant date range adjustments.</li>
-            <li><strong>Inflation Adjustment:</strong> Move the Inflation Rate slider to recalculate real returns against purchasing power.</li>
-          </ul>
-        </div>
 
-        <div class="modal-disclaimer" style="margin-top: 10px;">
+        <div style="font-weight: 700; font-size: 1rem; color: var(--accent-blue); margin-top: 12px;">🖱️ Key Application Controls</div>
+        <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem;">
+          <li><strong>Load CSV Datasets:</strong> Drag and drop single or multiple <code>.csv</code> files into the header zone.</li>
+          <li><strong>Fund Selector:</strong> Search and filter by provider or risk level.</li>
+          <li><strong>Display Mode & Palettes:</strong> Switch between percentage returns (%) or £1,000 growth, and adjust color schemes for high-contrast visibility.</li>
+          <li><strong>Date Ranges & Presets:</strong> Use the range sliders or instant preset buttons (1Y, 3Y, 5Y) to narrow down timeframes. Use lock toggles to shift date windows synchronously.</li>
+          <li><strong>Inflation Adjustment:</strong> Adjust the inflation slider to evaluate real purchasing power returns.</li>
+          <li><strong>Export Matrix:</strong> Download the current view directly to CSV, Excel, or high-resolution PNG image.</li>
+        </ul>
+
+        <div class="modal-disclaimer" style="margin-top: 12px;">
           <strong>⚠️ Disclaimer:</strong> Data points represent fund prices at a single point in the month and do not reflect the exact day of the month a member's contribution is executed by the administrator.
         </div>
 
-        <div style="font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 8px;">
+        <div style="font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 8px;">
           Provided by <strong>Dave Whitehead</strong>. Updates available at: <a href="https://github.com/lakeuk/lifesight-unit-prices" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">https://github.com/lakeuk/lifesight-unit-prices</a>
         </div>
       `;
-      elements.infoModal.classList.add('active');
+      toggleInfoModal(true);
     }
+
 
     function handleFileSelect(event) {
-      if (event.target.files.length > 0) processFile(event.target.files[0]);
+      if (event.target.files.length > 0) processFiles(event.target.files);
     }
 
-    function processFile(file) {
-      elements.fileStatus.innerHTML = `Loaded: <strong>${file.name}</strong>`;
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: h => h ? h.replace(/^\ufeff/, '').trim() : '',
-        complete: res => parseAndInitDataFromRows(res.data)
+    function processFiles(fileList) {
+      const files = Array.from(fileList);
+      elements.fileStatus.innerHTML = `Loaded: <strong>${files.length} file(s)</strong>`;
+      
+      let filesProcessed = 0;
+      let accumulatedRows = [];
+
+      files.forEach(file => {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          transformHeader: h => h ? h.replace(/^\ufeff/, '').trim() : '',
+          complete: res => {
+            accumulatedRows = accumulatedRows.concat(res.data);
+            filesProcessed++;
+            if (filesProcessed === files.length) {
+              parseAndInitDataFromRows(accumulatedRows);
+            }
+          }
+        });
       });
     }
 
@@ -700,13 +817,14 @@
       if (!rows || rows.length === 0) return;
 
       fundMap = {};
+      fundAdminMap = {};
       const dateSet = new Map();
 
       const sampleRow = rows[0];
       const keys = Object.keys(sampleRow);
       
-      // Fast property key lookup pre-determination
       const fundNameKey = keys.find(k => k.toLowerCase() === 'fund name' || k.toLowerCase() === 'fund');
+      const adminKey = keys.find(k => k.toLowerCase() === 'administrator' || k.toLowerCase() === 'admin' || k.toLowerCase() === 'provider');
       const dateKey = keys.find(k => k.toLowerCase() === 'effective date' || k.toLowerCase() === 'date');
       const priceKey = keys.find(k => {
         const lower = k.toLowerCase();
@@ -716,11 +834,15 @@
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         const fund = fundNameKey && row[fundNameKey] ? row[fundNameKey].trim() : null;
+        const admin = adminKey && row[adminKey] ? row[adminKey].trim() : (fund && fund.toLowerCase().includes('lifesight') ? 'LifeSight' : 'Default');
         const dateStr = dateKey && row[dateKey] ? row[dateKey].trim() : null;
         const price = priceKey ? parseFloat(row[priceKey]) : NaN;
 
         if (fund && dateStr && !isNaN(price)) {
-          if (!fundMap[fund]) fundMap[fund] = {};
+          if (!fundMap[fund]) {
+            fundMap[fund] = {};
+            fundAdminMap[fund] = admin;
+          }
           const dateObj = parseDateStr(dateStr);
           if (dateObj) {
             const timeKey = dateObj.getTime();
@@ -736,8 +858,20 @@
       const funds = Object.keys(fundMap).sort();
       selectedFund = funds.find(f => f.includes('LifeSight Equity')) || funds[0];
 
+      populateAdminDropdown();
       renderFundGrid();
       applyDefaultDateRanges();
+    }
+
+    function populateAdminDropdown() {
+      const admins = new Set(Object.values(fundAdminMap));
+      elements.adminFilterSelect.innerHTML = '<option value="ALL">All Administrators</option>';
+      admins.forEach(admin => {
+        const opt = document.createElement('option');
+        opt.value = admin;
+        opt.innerText = admin;
+        elements.adminFilterSelect.appendChild(opt);
+      });
     }
 
     function applyDefaultDateRanges() {
@@ -781,37 +915,54 @@
       return { label: 'High Risk', class: 'risk-high' };
     }
 
+    function getAdminStyle(admin) {
+      return adminColorMap[admin] || adminColorMap[admin.includes('LifeSight') ? 'LifeSight' : 'Default'];
+    }
+
+    /* Updated to render text push-buttons instead of radio controls */
     function renderFundGrid() {
       const frag = document.createDocumentFragment();
       const funds = Object.keys(fundMap).sort();
+      const selectedAdmin = elements.adminFilterSelect.value;
+      const searchQuery = elements.fundSearchInput.value.toLowerCase();
 
       funds.forEach(fundName => {
+        const admin = fundAdminMap[fundName] || 'Default';
+        if (selectedAdmin !== 'ALL' && admin !== selectedAdmin) return;
+        if (searchQuery && !fundName.toLowerCase().includes(searchQuery)) return;
+
         const isSelected = (fundName === selectedFund);
         const risk = getFundRiskProfile(fundName);
+        const style = getAdminStyle(admin);
 
-        const tile = document.createElement('div');
-        tile.className = `fund-radio-tile ${isSelected ? 'selected' : ''}`;
-        tile.title = fundName;
-        tile.innerHTML = `
-          <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
-            <input type="radio" name="fundRadio" ${isSelected ? 'checked' : ''}> 
-            <span style="overflow:hidden; text-overflow:ellipsis;">${fundName}</span>
-          </div>
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `fund-text-btn ${isSelected ? 'selected' : ''}`;
+        btn.style.setProperty('--admin-bg', style.bg);
+        btn.style.setProperty('--admin-border', style.border);
+        btn.title = `${fundName} (${admin})`;
+        btn.innerHTML = `
+          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${fundName}</span>
           <span class="risk-badge ${risk.class}">${risk.label}</span>
         `;
-        tile.onclick = () => {
+        btn.onclick = () => {
           if (selectedFund !== fundName) {
             selectedFund = fundName;
             elements.activeFundDisplay.innerText = selectedFund;
             renderFundGrid();
             applyDefaultDateRanges();
+            toggleFundModal(false);
           }
         };
-        frag.appendChild(tile);
+        frag.appendChild(btn);
       });
 
       elements.fundGrid.replaceChildren(frag);
       elements.activeFundDisplay.innerText = selectedFund || 'None';
+    }
+
+    function filterFundGrid() {
+      renderFundGrid();
     }
 
     function formatYearMonth(date) {
@@ -1068,7 +1219,6 @@
       const xDates = allDates.slice(xMinIdx, xMaxIdx + 1);
       const yDates = allDates.slice(yMinIdx, yMaxIdx + 1);
 
-      // Formulate headers faster via DocumentFragment
       const headerRowFrag = document.createDocumentFragment();
       const firstTh = document.createElement('th');
       firstTh.className = 'first-col-header';
@@ -1091,7 +1241,6 @@
       let positiveCount = 0;
       let sumReturn = 0;
 
-      // Pre-calculate array of formatted dates to avoid recalculating in loop
       const xFormatted = xDates.map(d => formatYearMonth(d));
 
       yDates.forEach((yD, rowIdx) => {
@@ -1172,9 +1321,9 @@
 
       elements.matrixBody.replaceChildren(bodyFrag);
       updateSummaryMetrics(validCells, highestCell, lowestCell, sumReturn, positiveCount, xDates, yDates);
+      adjustMatrixHeight();
     }
 
-    // Delegation handler for mouseover on matrix cells
     function handleMatrixMouseOver(e) {
       const cell = e.target.closest('td.matrix-cell');
       if (!cell) return;

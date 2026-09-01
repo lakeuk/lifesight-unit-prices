@@ -58,6 +58,8 @@
 
     .btn { padding: 6px 10px; font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); border-radius: 5px; cursor: pointer; transition: background 0.15s, color 0.15s; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
     .btn:hover { opacity: 0.85; }
+    .btn-primary { background-color: var(--accent-blue); color: #ffffff; border-color: var(--accent-blue); }
+    .btn-primary:hover { opacity: 0.9; }
     
     .theme-toggle-btn { padding: 6px 10px; font-size: 0.8rem; font-weight: 600; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); border-radius: 5px; cursor: pointer; white-space: nowrap; }
 
@@ -131,7 +133,7 @@
       color: #fca5a5;
     }
 
-    /* Information Modal Overlay */
+    /* Modal Overlay Base System */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -143,6 +145,7 @@
       padding: 16px;
     }
     .modal-overlay.active { display: flex; }
+    
     .modal-content {
       background: var(--card-bg);
       color: var(--text-main);
@@ -158,6 +161,11 @@
       flex-direction: column;
       gap: 14px;
     }
+
+    .modal-content-lg {
+      max-width: 900px;
+    }
+
     .modal-header {
       display: flex;
       justify-content: space-between;
@@ -274,36 +282,36 @@
       transform: translateY(-1px);
     }
 
-    /* Dynamic Fund Selection Section */
-    .fund-selector-section { display: flex; flex-direction: column; gap: 8px; background: var(--input-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); }
+    /* Dynamic Fund Selection Overlay Content */
+    .fund-selector-section { display: flex; flex-direction: column; gap: 12px; }
     .fund-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
     .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .search-input { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 5px; width: 180px; font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); }
-    .filter-select { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); font-weight: 600; }
+    .search-input { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 5px; width: 220px; font-size: 0.82rem; background: var(--input-bg); color: var(--text-main); }
+    .filter-select { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 0.82rem; background: var(--input-bg); color: var(--text-main); font-weight: 600; }
     
-    /* Dynamic Responsive Micro Tile Grid */
+    /* Dynamic Responsive Micro Tile Grid Inside Overlay */
     .fund-grid { 
       display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
-      gap: 6px; 
-      max-height: 220px; 
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+      gap: 8px; 
+      max-height: 55vh; 
       overflow-y: auto; 
       padding-right: 4px; 
     }
     .fund-tile { 
-      padding: 6px 10px; 
+      padding: 8px 10px; 
       color: #1e293b; 
       border: 1px solid var(--border-color); 
       border-left: 5px solid var(--border-color);
       border-radius: 5px; 
-      font-size: 0.75rem; 
+      font-size: 0.78rem; 
       font-weight: 600; 
       cursor: pointer; 
       user-select: none; 
       display: flex; 
       align-items: center; 
       justify-content: flex-start; 
-      min-height: 38px; 
+      min-height: 42px; 
       transition: all 0.15s ease; 
       white-space: normal; 
       word-break: break-word; 
@@ -330,11 +338,11 @@
 
   <div class="dashboard-card">
     
-    <!-- Header Controls: Dark Mode, Info, View Mode Toggle, Dropzone & Export Dropdown -->
+    <!-- Header Controls: Dark Mode, Info, View Mode Toggle, Dropzone, Fund Selector & Export Dropdown -->
     <div class="top-toolbar">
       <div class="toolbar-left">
         <button id="darkModeToggle" class="theme-toggle-btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
-        <button id="infoModalBtn" class="btn" onclick="toggleInfoModal(true)">ℹ️ Info</button>
+        <button id="infoModalBtn" class="btn btn-primary" onclick="toggleInfoModal(true)">🚀 How to Read</button>
         <button id="viewToggleBtn" class="btn" onclick="toggleViewMode()">📈 Unit Price Chart</button>
 
         <div class="file-dropzone" id="dropzone">
@@ -342,6 +350,9 @@
           <label for="csvFileInput">Browse Files</label>
           <input type="file" id="csvFileInput" accept=".csv" multiple onchange="handleFileSelect(event)">
         </div>
+
+        <!-- Fund Selector Trigger Button -->
+        <button id="fundSelectorBtn" class="btn btn-primary" onclick="toggleFundSelectorModal(true)">🎯 Fund Selector</button>
       </div>
 
       <!-- Combined Export Dropdown Select -->
@@ -444,28 +455,38 @@
       </div>
     </div>
 
-    <!-- Dynamic Fund Tile Selection Grid -->
-    <div class="fund-selector-section">
-      <div class="fund-toolbar">
-        <div class="filter-group">
-          <label for="adminSelect" style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Admin:</label>
-          <select id="adminSelect" class="filter-select" onchange="renderFundGrid()">
-            <option value="All">All</option>
-          </select>
+  </div>
 
-          <input type="text" id="searchInput" class="search-input" placeholder="Search funds..." oninput="renderFundGrid()">
-        </div>
+  <!-- Fund Selector Modal Overlay -->
+  <div id="fundSelectorModal" class="modal-overlay" onclick="if(event.target===this) toggleFundSelectorModal(false)">
+    <div class="modal-content modal-content-lg">
+      <div class="modal-header">
+        <span class="modal-title">🎯 Select Funds to Compare</span>
+        <button class="modal-close" onclick="toggleFundSelectorModal(false)">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="fund-selector-section">
+          <div class="fund-toolbar">
+            <div class="filter-group">
+              <label for="adminSelect" style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Admin:</label>
+              <select id="adminSelect" class="filter-select" onchange="renderFundGrid()">
+                <option value="All">All</option>
+              </select>
 
-        <div class="toolbar-actions">
-          <button class="btn" onclick="resetToDefaultSelection()">LifeCycle Defaults</button>
-          <button class="btn" onclick="selectAllVisibleFunds()">Select All</button>
-          <button class="btn" onclick="clearAllFunds()">Clear All</button>
+              <input type="text" id="searchInput" class="search-input" placeholder="Search funds..." oninput="renderFundGrid()">
+            </div>
+
+            <div class="toolbar-actions">
+              <button class="btn" onclick="resetToDefaultSelection()">LifeCycle Defaults</button>
+              <button class="btn" onclick="selectAllVisibleFunds()">Select All</button>
+              <button class="btn" onclick="clearAllFunds()">Clear All</button>
+            </div>
+          </div>
+
+          <div id="fundGrid" class="fund-grid"></div>
         </div>
       </div>
-
-      <div id="fundGrid" class="fund-grid"></div>
     </div>
-
   </div>
 
   <!-- Information Modal Box -->
@@ -480,8 +501,8 @@
           <div class="modal-section-title">How to Use the Dashboard</div>
           <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
             <li><strong>Load Data:</strong> Drag & drop or select multiple <code>.csv</code> files in a batch to compare funds across datasets.</li>
+            <li><strong>Select Funds:</strong> Click the <strong>🎯 Fund Selector</strong> button in the toolbar to search, filter by Administrator, and toggle active display funds.</li>
             <li><strong>Toggle View:</strong> Click the chart mode button to switch between <strong>Unit Price Chart</strong> and <strong>Percent Change Chart</strong>.</li>
-            <li><strong>Select Funds:</strong> Filter funds by Administrator or Search term, then click fund tiles to toggle active display.</li>
             <li><strong>Adjust Timeframes:</strong> Drag the dual slider range, select preset ranges (1M, 3M, 6M, 1Y, 3Y, 5Y, MAX), or enter exact dates manually.</li>
             <li><strong>Factsheet Links:</strong> Click the 📄 icon in the performance table to view the official fund factsheet PDF in a new window.</li>
             <li><strong>Benchmark Target:</strong> Overlay fixed compound return targets (e.g. +5% p.a.) against fund performance.</li>
@@ -707,6 +728,12 @@
 
     function toggleInfoModal(show) {
       const modal = document.getElementById('infoModal');
+      if (show) modal.classList.add('active');
+      else modal.classList.remove('active');
+    }
+
+    function toggleFundSelectorModal(show) {
+      const modal = document.getElementById('fundSelectorModal');
       if (show) modal.classList.add('active');
       else modal.classList.remove('active');
     }
@@ -1152,10 +1179,6 @@
       else if (preset === '3Y') targetStartDate.setFullYear(targetStartDate.getFullYear() - 3);
       else if (preset === '5Y') targetStartDate.setFullYear(targetStartDate.getFullYear() - 5);
       else if (preset === 'MAX') {
-        // if (isLocked) {
-        //   showRangeAlert("Action won't take place as MAX exceeds Lock Span boundaries. Turn off Lock Span first.");
-        //   return;
-        // }
         targetStartDate = new Date(allDates[0]);
       }
 
@@ -1328,7 +1351,6 @@
       // Apply Column Sorting if Active
       if (currentSortCol && currentSortDir !== 'none') {
         if (currentSortCol === 'cagr' && isUnderOneYear) {
-          // Fall back to total return sorting if CAGR is hidden
           currentSortCol = 'totalReturn';
         }
         metricsData.sort((a, b) => {
@@ -1442,17 +1464,14 @@
     }
 
     function getFundTileBackground(fundName, admin) {
-      // 1. 4 Default LifeSight Funds: Yellow-Orange Pastel Tone
       if (DEFAULT_LIFESIGHT_FUNDS.has(fundName)) {
         return '#f3b21b'; 
       }
 
-      // 2. Other LifeSight Funds: Slightly Different Yellow/Amber Tone
       if (admin && admin.toLowerCase() === 'lifesight') {
         return '#f5d27f'; 
       }
 
-      // 3. Other CSV Administrator Groups: Dynamic Pastel Tone System (Up to 10 tones)
       if (admin && adminPastelColorMap[admin]) {
         return adminPastelColorMap[admin];
       }

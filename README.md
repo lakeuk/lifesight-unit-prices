@@ -19,7 +19,7 @@ A privacy-focused, zero-setup toolkit designed to analyze unit price trajectorie
 | Feature / Aspect | 📈 Fund Analytics Dashboard | 🧩 Fund Return Matrix |
 | :--- | :--- | :--- |
 | **Primary Goal** | Trajectory analysis, benchmark performance comparisons, and key risk metrics. | Triangular grid visualizer for return rates based on varying purchase and evaluation dates. |
-| **Data Inputs** | Accepts single or multi-CSV files via drag-and-drop or file picker. | load `lifesight_fundprices_triangle.csv` (or manual user CSV upload). |
+| **Data Inputs** | Accepts single or multi-CSV files via drag-and-drop or file picker. | load `lifesight_fundprices.csv` (or manual user CSV upload). |
 | **Fund Selection** | Multi-fund support via toggles, search bar, and administrator filters. | Single-fund analysis via clickable fund selection tiles. |
 | **Visual Views** | Percent Change (%), Unit Price (£), and Target Benchmarks (+2.0% to +13.0% p.a.). | Interactive Heatmap: Green (≥5%), Light Green/Yellow (0%–5%), Red (<0%). |
 | **Advanced Tools** | Risk table auto-generating Total Return, CAGR, Volatility, Max Drawdown, and Sharpe Ratio. | Hover tooltips showing holding duration (months), total returns, and cross-axis date sync. |
@@ -40,7 +40,7 @@ A privacy-focused, zero-setup toolkit designed to analyze unit price trajectorie
 
 ### 🧩 Using the Fund Return Matrix
 
-1. **Load Data:** Open in your browser the Return Matrix HTML file `lifesight_fundprices_triangle.html` and drag your CSV file into the designated drop zone ie `lifesight_fundprices_triangle.csv`, or click **Browse Files**.
+1. **Load Data:** Open in your browser the Return Matrix HTML file `lifesight_fundprices_triangle.html` and drag your CSV file into the designated drop zone ie `lifesight_fundprices.csv`, or click **Browse Files**.
 2. **Select Fund:** Click on any individual fund tile to populate the triangular return matrix grid.
 3. **Set Parameters:** Adjust the horizontal axis (Purchase Dates) and vertical axis (Evaluation Dates) using the date pickers or range sliders.
 4. **Analyze Cells:** Hover over individual matrix cells to view the total months held, purchase price, evaluation price, and overall return percentage.
