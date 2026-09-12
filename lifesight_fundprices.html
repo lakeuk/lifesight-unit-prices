@@ -795,19 +795,22 @@
     function parseDateStr(str) {
       if (!str) return null;
       const cleanStr = str.replace(/^\ufeff/, '').trim();
-      const parts = cleanStr.split(/[-/.]/);
       
+      // Handles standard ISO YYYY-MM-DD
+      const isoParts = cleanStr.split('-');
+      if (isoParts.length === 3 && isoParts[0].length === 4) {
+        return new Date(parseInt(isoParts[0], 10), parseInt(isoParts[1], 10) - 1, parseInt(isoParts[2], 10));
+      }
+
+      const parts = cleanStr.split(/[-/.]/);
       if (parts.length === 3) {
         const p0 = parseInt(parts[0], 10);
         const p1 = parseInt(parts[1], 10);
         const p2 = parseInt(parts[2], 10);
 
         if (!isNaN(p0) && !isNaN(p1) && !isNaN(p2)) {
-          if (parts[0].length === 4) {
-            return new Date(p0, p1 - 1, p2);
-          }
           if (parts[2].length === 4) {
-            return new Date(p2, p1 - 1, p0);
+            return new Date(p2, p1 - 1, p0); // DD/MM/YYYY
           }
         }
       }
@@ -935,6 +938,10 @@
       currentViewMode = 'percent';
       updateViewToggleBtnUI();
 
+      minDateIdx = 0;
+      maxDateIdx = allDates.length - 1;
+
+      setupSlider();
       renderFundGrid();
       setPresetRange('5Y');
     }
