@@ -671,8 +671,18 @@
       return null;
     }
 
+    function getCurrencySymbol(currencyCode) {
+      if (!currencyCode) return '£';
+      const code = currencyCode.trim();
+      if (code === 'GBp' || code === 'GBX' || code.toUpperCase() === 'GBP') return '£';
+      if (code.toUpperCase() === 'USD') return '$';
+      if (code.toUpperCase() === 'EUR') return '€';
+      return code + ' ';
+    }
+
     let fundMap = {};       
     let fundAdminMap = {};  
+    let fundCurrencyMap = {};
     let fundColorMap = {};
     let adminPastelColorMap = {};
     let allAdmins = new Set();
@@ -831,6 +841,7 @@
     function processParsedFiles(parsedFiles) {
       fundMap = {};
       fundAdminMap = {};
+      fundCurrencyMap = {};
       fundColorMap = {};
       adminPastelColorMap = {};
       allAdmins = new Set();
@@ -860,7 +871,14 @@
           const fund = cleanRow['Fund'] || cleanRow['Fund Name'] || cleanRow['FundCode'] || cleanRow['Fund Code'] || null;
           const dateStr = cleanRow['Date'] || cleanRow['Unit Price Date'] || cleanRow['UnitPriceDate'] || null;
           const rawPrice = cleanRow['UnitPrice'] || cleanRow['Unit Price'] || cleanRow['Price'] || null;
-          const price = rawPrice !== null ? parseFloat(rawPrice) : NaN;
+          const currency = cleanRow['CurrencyCode'] || cleanRow['Currency Code'] || cleanRow['Currency'] || 'GBP';
+
+          let price = rawPrice !== null ? parseFloat(rawPrice) : NaN;
+
+          // Convert GBp (pence) values to pounds by dividing by 100
+          if (!isNaN(price) && currency.trim() === 'GBp') {
+            price = price / 100;
+          }
 
           let admin = cleanRow['Administrator'] ? cleanRow['Administrator'].trim() : null;
           if (!admin) {
@@ -875,6 +893,7 @@
             const fundName = fund.trim();
             if (!fundMap[fundName]) fundMap[fundName] = [];
             fundAdminMap[fundName] = admin;
+            fundCurrencyMap[fundName] = currency;
             allAdmins.add(admin);
 
             const dateObj = parseDateStr(dateStr);
@@ -944,6 +963,7 @@
       setupSlider();
       renderFundGrid();
       setPresetRange('5Y');
+      updateDashboard();
     }
 
     function initChart() {
@@ -982,7 +1002,8 @@
                   if (currentViewMode === 'percent') {
                     label += (context.parsed.y >= 0 ? '+' : '') + context.parsed.y.toFixed(1) + '%';
                   } else {
-                    label += '£' + context.parsed.y.toFixed(4);
+                    const symbol = getCurrencySymbol(fundCurrencyMap[context.dataset.label]);
+                    label += symbol + context.parsed.y.toFixed(4);
                   }
                   return label;
                 }
@@ -1001,7 +1022,7 @@
                 callback: function(value) { 
                   return currentViewMode === 'percent' 
                     ? Number(value).toFixed(1) + '%' 
-                    : '£' + Number(value).toFixed(4); 
+                    : Number(value).toFixed(4); 
                 } 
               }
             }
@@ -1344,6 +1365,7 @@
         metricsData.push({
           name: fundName,
           admin: fundAdminMap[fundName] || 'LifeSight',
+          currency: fundCurrencyMap[fundName] || 'GBP',
           startPrice: startP,
           endPrice: endP,
           totalReturn: totalReturn,
@@ -1446,6 +1468,7 @@
       tbody.innerHTML = metrics.map(m => {
         const retClass = m.totalReturn >= 0 ? 'positive-val' : 'negative-val';
         const cagrClass = m.cagr >= 0 ? 'positive-val' : 'negative-val';
+        const symbol = getCurrencySymbol(m.currency);
         
         const factsheetIcon = m.factsheetUrl 
           ? `<a href="${m.factsheetUrl}" target="_blank" class="factsheet-icon" title="Open Factsheet PDF in new window">📄</a>`
@@ -1458,8 +1481,8 @@
             <td><strong>${m.name}</strong></td>
             <td style="text-align: center;">${factsheetIcon}</td>
             <td><span style="font-size: 0.75rem; font-weight: 600; padding: 2px 5px; background:var(--border-color); border-radius:3px;">${m.admin}</span></td>
-            <td>£${m.startPrice.toFixed(4)}</td>
-            <td>£${m.endPrice.toFixed(4)}</td>
+            <td>${symbol}${m.startPrice.toFixed(4)}</td>
+            <td>${symbol}${m.endPrice.toFixed(4)}</td>
             <td class="${retClass}">${m.totalReturn >= 0 ? '+' : ''}${m.totalReturn.toFixed(1)}%</td>
             ${cagrCell}
             <td>${m.volatility.toFixed(1)}%</td>
