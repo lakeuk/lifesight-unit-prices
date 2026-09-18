@@ -70,12 +70,13 @@ A: You can construct your input CSV files according to following format requirem
 
 ### Daily Unit Price CSV 
 Option 1 - (`lifesight_fundprices.csv` or `{administrator}_fundprices.csv`)  
-Required headers (case-sensitive): `Administrator`, `FundID`, `Fund`, `Date`, `UnitPrice`
+Required headers (case-sensitive): `Administrator`, `FundID`, `Fund`, `Date`, `UnitPrice`  
+Optional headers (case-sensitive): `CurrencyCode`  {supported values: GBP, GBp, USD, EUR}
 
 ```csv
-Administrator,FundID,Fund,Date,UnitPrice
-LifeSight,101,LifeSight Equity - LSEQ,2016-08-31,1.2534
-LifeSight,101,LifeSight Equity - LSEQ,2016-09-01,1.2465
+Administrator,FundID,Fund,Date,UnitPrice,CurrencyCode
+LifeSight,101,LifeSight Equity - LSEQ,2016-08-31,1.2534,GBP
+LifeSight,101,LifeSight Equity - LSEQ,2016-09-01,1.2465,GBP
 ```
 
 Option 2 - (`unit-prices.csv`) note: this is the layout provided by WTW LifeSight  
