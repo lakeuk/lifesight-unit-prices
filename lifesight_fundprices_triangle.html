@@ -138,7 +138,6 @@
       gap: 14px;
     }
     
-    /* Increased Fund Selector modal max-width by > 33% (800px -> 1100px) */
     #fundModal .modal-content {
       max-width: 1100px;
     }
@@ -297,8 +296,67 @@
     .fund-modal-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
     .search-input { padding: 6px 10px; font-size: 0.8rem; border: 1px solid var(--border-color); border-radius: 5px; background: var(--input-bg); color: var(--text-main); flex-grow: 1; outline: none; }
 
-    /* Updated to wider grid columns to accommodate full fund names */
-    .fund-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+    /* Grouped Container & Visually Appealing Section Breaks for Matrix App */
+    .fund-grid { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 16px; 
+      max-height: 520px; 
+      overflow-y: auto; 
+      padding-right: 6px; 
+    }
+
+    .fund-group-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .fund-group-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 0;
+    }
+
+    .fund-group-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .fund-group-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: var(--tile-inactive-bg);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1px 8px;
+    }
+
+    .fund-group-divider {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border-color) 0%, rgba(203, 213, 225, 0.1) 100%);
+      border: none;
+    }
+
+    body.dark-mode .fund-group-divider {
+      background: linear-gradient(90deg, var(--border-color) 0%, rgba(51, 65, 85, 0.1) 100%);
+    }
+
+    .fund-group-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 10px;
+    }
     
     /* Text Push Button Component for Funds */
     .fund-text-btn { 
@@ -874,16 +932,39 @@
       });
     }
 
+    // Returns start & end index bounds in `allDates` for the specified fund
+    function getFundDateBounds(fundName) {
+      if (!fundName || !fundMap[fundName] || allDates.length === 0) {
+        return { startIdx: 0, endIdx: allDates.length - 1 };
+      }
+      const prices = fundMap[fundName];
+      let startIdx = -1;
+      let endIdx = -1;
+
+      for (let i = 0; i < allDates.length; i++) {
+        const timeKey = allDates[i].getTime();
+        if (prices[timeKey] !== undefined) {
+          if (startIdx === -1) startIdx = i;
+          endIdx = i;
+        }
+      }
+
+      if (startIdx === -1) return { startIdx: 0, endIdx: allDates.length - 1 };
+      return { startIdx, endIdx };
+    }
+
     function applyDefaultDateRanges() {
       if (allDates.length === 0) return;
 
-      const maxAvailableIdx = allDates.length - 1;
+      const bounds = getFundDateBounds(selectedFund);
+      const maxAvailableIdx = bounds.endIdx;
+      const minAvailableIdx = bounds.startIdx;
 
-      xMaxIdx = Math.max(0, maxAvailableIdx - 1);
-      xMinIdx = Math.max(0, xMaxIdx - 23);
+      xMaxIdx = Math.max(minAvailableIdx, maxAvailableIdx - 1);
+      xMinIdx = Math.max(minAvailableIdx, xMaxIdx - 23);
 
       yMaxIdx = maxAvailableIdx;
-      yMinIdx = Math.max(0, yMaxIdx - 23);
+      yMinIdx = Math.max(minAvailableIdx, yMaxIdx - 23);
 
       elements.xLockToggle.checked = true;
       elements.yLockToggle.checked = true;
@@ -895,13 +976,16 @@
 
     function applyPresetSpan(monthsSpan) {
       if (allDates.length === 0) return;
-      const maxAvailableIdx = allDates.length - 1;
+      
+      const bounds = getFundDateBounds(selectedFund);
+      const maxAvailableIdx = bounds.endIdx;
+      const minAvailableIdx = bounds.startIdx;
 
       yMaxIdx = maxAvailableIdx;
-      yMinIdx = Math.max(0, yMaxIdx - monthsSpan + 1);
+      yMinIdx = Math.max(minAvailableIdx, yMaxIdx - monthsSpan + 1);
 
-      xMaxIdx = Math.max(0, maxAvailableIdx - 1);
-      xMinIdx = Math.max(0, xMaxIdx - monthsSpan + 1);
+      xMaxIdx = Math.max(minAvailableIdx, maxAvailableIdx - 1);
+      xMinIdx = Math.max(minAvailableIdx, xMaxIdx - monthsSpan + 1);
 
       setupSliders('x');
       setupSliders('y');
@@ -919,45 +1003,110 @@
       return adminColorMap[admin] || adminColorMap[admin.includes('LifeSight') ? 'LifeSight' : 'Default'];
     }
 
-    /* Updated to render text push-buttons instead of radio controls */
+    /* Updated Grouped Section Rendering with Line Breaks & Group Badges */
     function renderFundGrid() {
-      const frag = document.createDocumentFragment();
-      const funds = Object.keys(fundMap).sort();
+      const grid = elements.fundGrid;
+      grid.innerHTML = '';
+
       const selectedAdmin = elements.adminFilterSelect.value;
       const searchQuery = elements.fundSearchInput.value.toLowerCase();
 
-      funds.forEach(fundName => {
+      // Group funds by administrator
+      const adminGroups = {};
+      Object.keys(fundMap).forEach(fundName => {
         const admin = fundAdminMap[fundName] || 'Default';
-        if (selectedAdmin !== 'ALL' && admin !== selectedAdmin) return;
-        if (searchQuery && !fundName.toLowerCase().includes(searchQuery)) return;
-
-        const isSelected = (fundName === selectedFund);
-        const risk = getFundRiskProfile(fundName);
-        const style = getAdminStyle(admin);
-
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `fund-text-btn ${isSelected ? 'selected' : ''}`;
-        btn.style.setProperty('--admin-bg', style.bg);
-        btn.style.setProperty('--admin-border', style.border);
-        btn.title = `${fundName} (${admin})`;
-        btn.innerHTML = `
-          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${fundName}</span>
-          <span class="risk-badge ${risk.class}">${risk.label}</span>
-        `;
-        btn.onclick = () => {
-          if (selectedFund !== fundName) {
-            selectedFund = fundName;
-            elements.activeFundDisplay.innerText = selectedFund;
-            renderFundGrid();
-            applyDefaultDateRanges();
-            toggleFundModal(false);
-          }
-        };
-        frag.appendChild(btn);
+        if (!adminGroups[admin]) {
+          adminGroups[admin] = [];
+        }
+        adminGroups[admin].push(fundName);
       });
 
-      elements.fundGrid.replaceChildren(frag);
+      // Sort funds alphabetically within each admin group
+      Object.keys(adminGroups).forEach(admin => {
+        adminGroups[admin].sort((a, b) => a.localeCompare(b));
+      });
+
+      // Order Administrator groups with LifeSight first, then remaining alphabetically
+      const sortedAdmins = Object.keys(adminGroups).sort((a, b) => {
+        if (a.toLowerCase() === 'lifesight') return -1;
+        if (b.toLowerCase() === 'lifesight') return 1;
+        return a.localeCompare(b);
+      });
+
+      let totalMatchedFunds = 0;
+
+      sortedAdmins.forEach(admin => {
+        const matchesAdmin = (selectedAdmin === 'ALL' || admin.trim().toLowerCase() === selectedAdmin.trim().toLowerCase());
+        if (!matchesAdmin) return;
+
+        const matchingFunds = adminGroups[admin].filter(fundName => fundName.toLowerCase().includes(searchQuery));
+        if (matchingFunds.length === 0) return;
+
+        totalMatchedFunds += matchingFunds.length;
+
+        // Group Container
+        const section = document.createElement('div');
+        section.className = 'fund-group-section';
+
+        // Header with Line Break
+        const header = document.createElement('div');
+        header.className = 'fund-group-header';
+
+        const title = document.createElement('span');
+        title.className = 'fund-group-title';
+        title.innerText = admin;
+
+        const badge = document.createElement('span');
+        badge.className = 'fund-group-badge';
+        badge.innerText = `${matchingFunds.length}`;
+
+        const divider = document.createElement('div');
+        divider.className = 'fund-group-divider';
+
+        header.appendChild(title);
+        header.appendChild(badge);
+        header.appendChild(divider);
+        section.appendChild(header);
+
+        // Subgrid for Fund Text Buttons
+        const subGrid = document.createElement('div');
+        subGrid.className = 'fund-group-grid';
+
+        matchingFunds.forEach(fundName => {
+          const isSelected = (fundName === selectedFund);
+          const risk = getFundRiskProfile(fundName);
+          const style = getAdminStyle(admin);
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `fund-text-btn ${isSelected ? 'selected' : ''}`;
+          btn.style.setProperty('--admin-bg', style.bg);
+          btn.style.setProperty('--admin-border', style.border);
+          btn.title = `${fundName} (${admin})`;
+          btn.innerHTML = `
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${fundName}</span>
+            <span class="risk-badge ${risk.class}">${risk.label}</span>
+          `;
+          btn.onclick = () => {
+            if (selectedFund !== fundName) {
+              selectedFund = fundName;
+              elements.activeFundDisplay.innerText = selectedFund;
+              renderFundGrid();
+              applyDefaultDateRanges();
+              toggleFundModal(false);
+            }
+          };
+          subGrid.appendChild(btn);
+        });
+
+        section.appendChild(subGrid);
+        grid.appendChild(section);
+      });
+
+      if (totalMatchedFunds === 0) {
+        grid.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 0.85rem;">No funds match your search or filter selection.</div>';
+      }
+
       elements.activeFundDisplay.innerText = selectedFund || 'None';
     }
 
@@ -978,11 +1127,12 @@
     function setupSliders(axis) {
       const minEl = (axis === 'x') ? elements.xSliderMin : elements.ySliderMin;
       const maxEl = (axis === 'x') ? elements.xSliderMax : elements.ySliderMax;
+      const bounds = getFundDateBounds(selectedFund);
       const minIdx = (axis === 'x') ? xMinIdx : yMinIdx;
       const maxIdx = (axis === 'x') ? xMaxIdx : yMaxIdx;
 
-      minEl.min = 0; minEl.max = allDates.length - 1; minEl.value = minIdx;
-      maxEl.min = 0; maxEl.max = allDates.length - 1; maxEl.value = maxIdx;
+      minEl.min = bounds.startIdx; minEl.max = bounds.endIdx; minEl.value = minIdx;
+      maxEl.min = bounds.startIdx; maxEl.max = bounds.endIdx; maxEl.value = maxIdx;
 
       updateSliderUI(axis);
       updateMonthInputsUI(axis);
@@ -992,13 +1142,15 @@
       const minEl = (axis === 'x') ? elements.xSliderMin : elements.ySliderMin;
       const maxEl = (axis === 'x') ? elements.xSliderMax : elements.ySliderMax;
       const fill = (axis === 'x') ? elements.xSliderTrackFill : elements.ySliderTrackFill;
-      const total = allDates.length > 1 ? allDates.length - 1 : 1;
+      const bounds = getFundDateBounds(selectedFund);
+      const span = bounds.endIdx - bounds.startIdx;
+      const total = span > 0 ? span : 1;
 
-      const leftPct = (minEl.value / total) * 100;
-      const rightPct = (maxEl.value / total) * 100;
+      const leftPct = ((minEl.value - bounds.startIdx) / total) * 100;
+      const rightPct = ((maxEl.value - bounds.startIdx) / total) * 100;
 
       fill.style.left = leftPct + '%';
-      fill.style.width = (rightPct - leftPct) + '%';
+      fill.style.width = Math.max(0, rightPct - leftPct) + '%';
     }
 
     function updateMonthInputsUI(axis) {
@@ -1037,16 +1189,17 @@
       let minIdx = (axis === 'x') ? xMinIdx : yMinIdx;
       let maxIdx = (axis === 'x') ? xMaxIdx : yMaxIdx;
       const span = maxIdx - minIdx;
+      const bounds = getFundDateBounds(selectedFund);
 
       let newMin = minIdx + delta;
       let newMax = maxIdx + delta;
 
-      if (newMin < 0) {
-        newMin = 0;
+      if (newMin < bounds.startIdx) {
+        newMin = bounds.startIdx;
         newMax = newMin + span;
       }
-      if (newMax >= allDates.length) {
-        newMax = allDates.length - 1;
+      if (newMax > bounds.endIdx) {
+        newMax = bounds.endIdx;
         newMin = newMax - span;
       }
 
@@ -1112,13 +1265,14 @@
 
       const isAxisLocked = (axis === 'x') ? elements.xLockToggle.checked : elements.yLockToggle.checked;
       const isSyncLocked = elements.syncLockToggle.checked;
+      const bounds = getFundDateBounds(selectedFund);
 
       const [sY, sM] = startVal.split('-').map(Number);
       const [eY, eM] = endVal.split('-').map(Number);
 
       let oldMin = (axis === 'x') ? xMinIdx : yMinIdx;
       let newMin = allDates.findIndex(d => d.getFullYear() === sY && (d.getMonth() + 1) === sM);
-      if (newMin === -1) newMin = 0;
+      if (newMin === -1 || newMin < bounds.startIdx) newMin = bounds.startIdx;
 
       let delta = newMin - oldMin;
 
@@ -1130,7 +1284,8 @@
         }
       } else {
         let newMax = allDates.slice().reverse().findIndex(d => d.getFullYear() === eY && (d.getMonth() + 1) === eM);
-        newMax = (newMax === -1) ? allDates.length - 1 : (allDates.length - 1) - newMax;
+        newMax = (newMax === -1) ? bounds.endIdx : (allDates.length - 1) - newMax;
+        if (newMax > bounds.endIdx) newMax = bounds.endIdx;
 
         if (newMin < newMax) {
           if (axis === 'x') { xMinIdx = newMin; xMaxIdx = newMax; }

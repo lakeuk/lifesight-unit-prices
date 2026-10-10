@@ -289,15 +289,68 @@
     .search-input { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 5px; width: 220px; font-size: 0.82rem; background: var(--input-bg); color: var(--text-main); }
     .filter-select { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 0.82rem; background: var(--input-bg); color: var(--text-main); font-weight: 600; }
     
-    /* Dynamic Responsive Micro Tile Grid Inside Overlay */
+    /* Grouped Container & Visually Appealing Section Breaks */
     .fund-grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
-      gap: 8px; 
+      display: flex;
+      flex-direction: column;
+      gap: 16px; 
       max-height: 55vh; 
       overflow-y: auto; 
-      padding-right: 4px; 
+      padding-right: 6px; 
     }
+
+    .fund-group-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .fund-group-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 0;
+    }
+
+    .fund-group-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .fund-group-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: var(--tile-inactive-bg);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1px 8px;
+    }
+
+    .fund-group-divider {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border-color) 0%, rgba(203, 213, 225, 0.1) 100%);
+      border: none;
+    }
+
+    body.dark-mode .fund-group-divider {
+      background: linear-gradient(90deg, var(--border-color) 0%, rgba(51, 65, 85, 0.1) 100%);
+    }
+
+    .fund-group-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+    }
+
     .fund-tile { 
       padding: 8px 10px; 
       color: #1e293b; 
@@ -328,7 +381,7 @@
     }
 
     @media (max-width: 768px) {
-      .fund-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+      .fund-group-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
       .chart-wrapper { height: 300px; }
       .toolbar-left { width: 100%; }
     }
@@ -1538,20 +1591,46 @@
         return a.localeCompare(b);
       });
 
-      // Flatten ordered funds
-      const orderedFunds = [];
+      let totalMatchedFunds = 0;
+
       sortedAdmins.forEach(admin => {
-        adminGroups[admin].forEach(fundName => {
-          orderedFunds.push(fundName);
-        });
-      });
-
-      orderedFunds.forEach(fundName => {
-        const admin = fundAdminMap[fundName] || 'LifeSight';
         const matchesAdmin = (adminFilter === 'All' || admin.trim().toLowerCase() === adminFilter.trim().toLowerCase());
-        const matchesSearch = fundName.toLowerCase().includes(searchQuery);
+        if (!matchesAdmin) return;
 
-        if (matchesAdmin && matchesSearch) {
+        const matchingFunds = adminGroups[admin].filter(fundName => fundName.toLowerCase().includes(searchQuery));
+        if (matchingFunds.length === 0) return;
+
+        totalMatchedFunds += matchingFunds.length;
+
+        // Group Container
+        const section = document.createElement('div');
+        section.className = 'fund-group-section';
+
+        // Header with Line Break
+        const header = document.createElement('div');
+        header.className = 'fund-group-header';
+
+        const title = document.createElement('span');
+        title.className = 'fund-group-title';
+        title.innerText = admin;
+
+        const badge = document.createElement('span');
+        badge.className = 'fund-group-badge';
+        badge.innerText = `${matchingFunds.length}`;
+
+        const divider = document.createElement('div');
+        divider.className = 'fund-group-divider';
+
+        header.appendChild(title);
+        header.appendChild(badge);
+        header.appendChild(divider);
+        section.appendChild(header);
+
+        // Nested Grid for Tiles
+        const subGrid = document.createElement('div');
+        subGrid.className = 'fund-group-grid';
+
+        matchingFunds.forEach(fundName => {
           const isSelected = selectedFunds.has(fundName);
           const fundColor = fundColorMap[fundName] || '#2563eb';
           const bgTone = getFundTileBackground(fundName, admin);
@@ -1577,9 +1656,16 @@
             renderFundGrid();
             updateDashboard();
           };
-          grid.appendChild(tile);
-        }
+          subGrid.appendChild(tile);
+        });
+
+        section.appendChild(subGrid);
+        grid.appendChild(section);
       });
+
+      if (totalMatchedFunds === 0) {
+        grid.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 0.85rem;">No funds match your search or filter selection.</div>';
+      }
     }
 
     function resetToDefaultSelection() {
