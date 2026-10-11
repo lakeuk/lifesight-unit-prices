@@ -559,7 +559,7 @@
           <div class="modal-section-title">How to Use the Dashboard</div>
           <ul style="padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
             <li><strong>Load Data:</strong> Drag & drop or select multiple <code>.csv</code> files in a batch to compare funds across datasets.</li>
-            <li><strong>Select Funds:</strong> Click the <strong>🎯 Fund Selector</strong> button in the toolbar to search, filter by Administrator, and toggle active display funds.</li>
+            <li><strong>Select Funds:</strong> Click the <strong>🎯 Fund Selector</strong> button in the toolbar to search, filter by Administrator, and toggle active display funds. Colors are dynamically allocated from a distinct 20-color palette.</li>
             <li><strong>Toggle View:</strong> Click the chart mode button to switch between <strong>Unit Price Chart</strong> and <strong>Percent Change Chart</strong>.</li>
             <li><strong>Adjust Timeframes:</strong> Drag the dual slider range, select preset ranges (1M, 3M, 6M, 1Y, 3Y, 5Y, MAX), or enter exact dates manually.</li>
             <li><strong>Factsheet Links:</strong> Click the 📄 icon in the performance table to view the official fund factsheet PDF in a new window.</li>
@@ -592,9 +592,28 @@
   </div>
 
   <script>
-    const PALETTE = [
-      '#2563eb', '#10b981', '#ea580c', '#7c3aed', '#dc2626', 
-      '#0891b2', '#db2777', '#059669', '#d97706', '#4f46e5'
+    // Sasha Maps 20 Distinct Colors Palette (https://sashamaps.net/resources/20-colors/)
+    const SASHA_PALETTE = [
+      '#e6194b', // Red
+      '#3cb44b', // Green
+      '#ffe119', // Yellow
+      '#4363d8', // Blue
+      '#f58231', // Orange
+      '#911eb4', // Purple
+      '#42d4f4', // Cyan
+      '#f032e6', // Magenta
+      '#bfef45', // Lime
+      '#fabed4', // Pink
+      '#469990', // Teal
+      '#dcbeff', // Lavender
+      '#9a6324', // Brown
+      '#fffac8', // Beige
+      '#800000', // Maroon
+      '#aaffc3', // Mint
+      '#808000', // Olive
+      '#ffd8b1', // Apricot
+      '#000075', // Navy
+      '#a9a9a9'  // Grey
     ];
 
     // Up to 10 Distinct Pastel Tones for CSV Administrator Groupings
@@ -761,6 +780,27 @@
     // Sorter State
     let currentSortCol = null;
     let currentSortDir = 'none';
+
+    // Dynamic Color Allocation Helper using SASHA_PALETTE
+    function assignColorToFund(fundName) {
+      const usedColors = new Set();
+      selectedFunds.forEach(f => {
+        if (f !== fundName && fundColorMap[f]) {
+          usedColors.add(fundColorMap[f]);
+        }
+      });
+
+      for (let color of SASHA_PALETTE) {
+        if (!usedColors.has(color)) {
+          fundColorMap[fundName] = color;
+          return color;
+        }
+      }
+
+      const fallbackColor = SASHA_PALETTE[selectedFunds.size % SASHA_PALETTE.length];
+      fundColorMap[fundName] = fallbackColor;
+      return fallbackColor;
+    }
 
     // Custom Plugin to ensure exported image has a solid background
     const backgroundPlugin = {
@@ -970,7 +1010,7 @@
       });
 
       const sortedFundNames = Object.keys(fundMap).sort();
-      sortedFundNames.forEach((fund, idx) => {
+      sortedFundNames.forEach((fund) => {
         fundMap[fund].sort((a, b) => a.date.getTime() - b.date.getTime());
 
         const uniqueData = [];
@@ -983,8 +1023,6 @@
           }
         });
         fundMap[fund] = uniqueData;
-
-        fundColorMap[fund] = PALETTE[idx % PALETTE.length];
       });
 
       allDates = Array.from(dateMap.values()).sort((a, b) => a.getTime() - b.getTime());
@@ -1006,8 +1044,18 @@
         'LifeSight Bonds - LSBO'
       ];
       selectedFunds.clear();
-      defaults.forEach(f => { if (availableFunds.includes(f)) selectedFunds.add(f); });
-      if (selectedFunds.size === 0 && availableFunds.length > 0) selectedFunds.add(availableFunds[0]);
+      fundColorMap = {};
+      defaults.forEach(f => { 
+        if (availableFunds.includes(f)) {
+          selectedFunds.add(f);
+          assignColorToFund(f);
+        }
+      });
+      if (selectedFunds.size === 0 && availableFunds.length > 0) {
+        const firstFund = availableFunds[0];
+        selectedFunds.add(firstFund);
+        assignColorToFund(firstFund);
+      }
 
       currentSortCol = null;
       currentSortDir = 'none';
@@ -1637,7 +1685,7 @@
 
         matchingFunds.forEach(fundName => {
           const isSelected = selectedFunds.has(fundName);
-          const fundColor = fundColorMap[fundName] || '#2563eb';
+          const fundColor = isSelected ? (fundColorMap[fundName] || '#2563eb') : 'var(--border-color)';
           const bgTone = getFundTileBackground(fundName, admin);
 
           const tile = document.createElement('div');
@@ -1645,18 +1693,15 @@
           tile.title = fundName;
           tile.innerText = fundName;
           tile.style.backgroundColor = bgTone;
-
-          if (isSelected) {
-            tile.style.borderLeft = `5px solid ${fundColor}`;
-          } else {
-            tile.style.borderLeft = `4px solid ${fundColor}`;
-          }
+          tile.style.borderLeft = `5px solid ${fundColor}`;
 
           tile.onclick = () => {
             if (selectedFunds.has(fundName)) {
               selectedFunds.delete(fundName);
+              delete fundColorMap[fundName];
             } else {
               selectedFunds.add(fundName);
+              assignColorToFund(fundName);
             }
             renderFundGrid();
             updateDashboard();
@@ -1675,11 +1720,15 @@
 
     function resetToDefaultSelection() {
       selectedFunds.clear();
+      fundColorMap = {};
       const adminSelect = document.getElementById('adminSelect');
       adminSelect.value = 'All';
 
       ['LifeSight Equity - LSEQ', 'LifeSight Diversified Growth - LSDG', 'LifeSight Cash - LSCA', 'LifeSight Bonds - LSBO'].forEach(f => {
-        if (fundMap[f]) selectedFunds.add(f);
+        if (fundMap[f]) {
+          selectedFunds.add(f);
+          assignColorToFund(f);
+        }
       });
       renderFundGrid();
       setPresetRange('5Y');
@@ -1694,7 +1743,10 @@
         const matchesAdmin = (adminFilter === 'All' || admin.trim().toLowerCase() === adminFilter.trim().toLowerCase());
         const matchesSearch = fundName.toLowerCase().includes(searchQuery);
         if (matchesAdmin && matchesSearch) {
-          selectedFunds.add(fundName);
+          if (!selectedFunds.has(fundName)) {
+            selectedFunds.add(fundName);
+            assignColorToFund(fundName);
+          }
         }
       });
       renderFundGrid();
@@ -1703,6 +1755,7 @@
 
     function clearAllFunds() {
       selectedFunds.clear();
+      fundColorMap = {};
       renderFundGrid();
       updateDashboard();
     }
